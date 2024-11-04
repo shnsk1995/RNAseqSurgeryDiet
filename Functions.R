@@ -237,7 +237,6 @@ DoGroupCorrelationPlots <- function(cts,sampleInfo,geneInfo,group){
   
 }
 
-
 DoComprehensiveCorrelationPlot <- function(cts,sampleInfo,geneInfo){
   
   
@@ -261,7 +260,6 @@ DoComprehensiveCorrelationPlot <- function(cts,sampleInfo,geneInfo){
   
   
 }
-
 
 DoCrossCorrelationPlot <- function(cts,sampleInfo,geneInfo,group1,group2){
   
@@ -297,7 +295,6 @@ DoCrossCorrelationPlot <- function(cts,sampleInfo,geneInfo,group1,group2){
   
   
 }
-
 
 FilterLowQualitySamples <- function(cts,sampleInfo,geneInfo){
   
@@ -388,7 +385,6 @@ FilterLowQualitySamples <- function(cts,sampleInfo,geneInfo){
   return(lowQualitySamples)
   
 }
-
 
 Generate_Density_N_Library_Plot_Grid <- function(allCts,allSampleInfo,geneInfo){
   
@@ -497,13 +493,11 @@ Generate_Density_N_Library_Plot_Grid <- function(allCts,allSampleInfo,geneInfo){
   
 }
 
-
 SaveLogCPMCounts <- function(logCPM,dirPath){
   
   write.csv(logCPM,file = paste0(dirPath,"/logCPMCounts.csv"),row.names = TRUE)
   
 }
-
 
 SaveAllNSigGenes <- function(fit,contrast,geneInfo,dirPath){
   
@@ -601,7 +595,6 @@ SaveAllNSigGenes <- function(fit,contrast,geneInfo,dirPath){
   
 }
 
-
 PlotTrueNullFractions <- function(dirPath,contrasts){
   
   trueNULLDF <- as.data.frame(matrix(ncol = 2, nrow = 0))
@@ -629,7 +622,6 @@ PlotTrueNullFractions <- function(dirPath,contrasts){
   dev.off()
   
 }
-
 
 PlotBioNTechCorr <- function(fit,contrasts,dirPath){
   
@@ -660,7 +652,6 @@ PlotBioNTechCorr <- function(fit,contrasts,dirPath){
   dev.off()
   
 }
-
 
 PlotVennDiagrams <- function(fit,contrasts,geneInfo,tissueOfInterest,dirPath){
   
@@ -759,7 +750,6 @@ PlotVennDiagrams <- function(fit,contrasts,geneInfo,tissueOfInterest,dirPath){
   
 }
 
-
 PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
   
   volcanoPlotList <- list()
@@ -850,7 +840,6 @@ PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
   
 }
 
-
 PlotMA <- function(contrasts,tissueOfInterest,dirPath){
   
   MAPlotList <- list()
@@ -912,114 +901,6 @@ PlotMA <- function(contrasts,tissueOfInterest,dirPath){
   
 }
 
-#Version1 - Working
-# PlotHeatmaps <- function(ctsAll,contrasts,dirPath){
-#   
-#   for (contrast in contrasts) {
-#   
-#     if(length(grep("^LF",contrast)) == 1){
-#       
-#       requiredColumns <- grep("^LF",colnames(ctsAll))
-#       cts <- ctsAll[,requiredColumns]
-#       
-#       sampleNames <- colnames(cts)
-# 
-#       lf_C_SamplesCount <- length(grep(paste0("^", "LF_C"), sampleNames))
-#       lf_S_SamplesCount <- length(grep(paste0("^", "LF_S"), sampleNames))
-#       
-#       sampleGroups <- factor(c(rep("Low fat Control",lf_C_SamplesCount),
-#                                rep("Low fat Surgery",lf_S_SamplesCount)
-#       ))
-#       
-#       groupColors <- c("Low fat Control" = "blue",
-#                        "Low fat Surgery" = "red"
-#       )
-#       
-#     }else if(length(grep("^HF",contrast)) == 1){
-#       
-#       requiredColumns <- grep("^HF",colnames(ctsAll))
-#       cts <- ctsAll[,requiredColumns]
-#       
-#       sampleNames <- colnames(cts)
-#       
-#       hf_C_SamplesCount <- length(grep(paste0("^", "HF_C"), sampleNames))
-#       hf_S_SamplesCount <- length(grep(paste0("^", "HF_S"), sampleNames))
-#       
-#       sampleGroups <- factor(c(rep("High fat Control",hf_C_SamplesCount),
-#                                rep("High fat Surgery",hf_S_SamplesCount)
-#       ))
-#       
-#       groupColors <- c("High fat Control" = "blue",
-#                        "High fat Surgery" = "red"
-#       )
-#       
-#     }else {
-#       
-#       cts <- ctsAll
-#       sampleNames <- colnames(cts)
-#       
-#       hf_C_SamplesCount <- length(grep(paste0("^", "HF_C"), sampleNames))
-#       hf_S_SamplesCount <- length(grep(paste0("^", "HF_S"), sampleNames))
-#       lf_C_SamplesCount <- length(grep(paste0("^", "LF_C"), sampleNames))
-#       lf_S_SamplesCount <- length(grep(paste0("^", "LF_S"), sampleNames))
-#       
-#       sampleGroups <- factor(c(rep("High fat Control",hf_C_SamplesCount),
-#                                rep("High fat Surgery",hf_S_SamplesCount),
-#                                rep("Low fat Control",lf_C_SamplesCount),
-#                                rep("Low fat Surgery",lf_S_SamplesCount)
-#       ))
-#       
-#       groupColors <- c("High fat Control" = "blue",
-#                        "High fat Surgery" = "red",
-#                        "Low fat Control" = "orange",
-#                        "Low fat Surgery" = "green"
-#       )
-#       
-#     }
-#     
-#     sheetNames <- getSheetNames(paste0(dirPath,"SigGenes.xlsx"))
-#     
-#     if(!contrast %in% sheetNames) next
-#     
-#     sigDEresults <- read.xlsx(paste0(dirPath,"SigGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
-#     
-#     sigDEresults <- head(sigDEresults[order(sigDEresults$adj.P.Val),],n=50)
-#     
-#     sigGenes <- sigDEresults$EnsemblID
-#     
-#     sigGeneExpressionData <- cts[rownames(cts) %in% sigGenes,]
-#     
-#     rownames(sigGeneExpressionData) <- sigDEresults$GeneSymbol
-#     
-#     scaledSigExpData <- t(scale(t(sigGeneExpressionData)))
-#     
-#     topAnnotation <- HeatmapAnnotation(
-#       Group = sampleGroups,
-#       col = list(Group = groupColors)
-#     )
-#     
-#     jpeg(paste0(dirPath,contrast,"_TopHeatMap.jpeg"), width = 1200, height = 1000,quality = 100)
-#     
-#     topHeatmap <- Heatmap(scaledSigExpData,
-#                           name = "Expression",
-#                           row_names_side = "left",
-#                           column_names_side = "top",
-#                           clustering_distance_rows = "euclidean",
-#                           cluster_columns = FALSE,
-#                           top_annotation = topAnnotation
-#     )
-#     
-#     print(topHeatmap)
-#     
-#     dev.off()
-#     
-#     
-#     
-#   }
-#   
-# }
-
-#Version2 - Need to be checked (Working Fine - Use this)
 PlotHeatmaps <- function(ctsAll,contrasts,tissueOfInterest,dirPath){
   
   for (contrast in contrasts) {
@@ -1192,195 +1073,6 @@ PlotHeatmaps <- function(ctsAll,contrasts,tissueOfInterest,dirPath){
     
     
   }
-  
-}
-
-#Function to correct heatmaps after appending files
-CorrectHeatmaps <- function(tissueOfInterest){
-  
-  for (tissue in tissueOfInterest) {
-    
-    dirPath <- paste0("data/LimmaResults/",tissue,"/")
-    
-    contrasts <- c("HF_Surgery","LF_Surgery","Surgery","Diet","Surgery_Diet")
-    
-    ctsAll <- read.csv(paste0(dirPath,"logCPMCounts.csv"),row.names = 1)
-    
-    for (contrast in contrasts) {
-      
-      if(contrast == "LF_Surgery"){
-        
-        requiredColumns <- grep("^LF",colnames(ctsAll))
-        cts <- ctsAll[,requiredColumns]
-        
-        sampleNames <- colnames(cts)
-        
-        lf_C_SamplesCount <- length(grep(paste0("^", "LF_C"), sampleNames))
-        lf_S_SamplesCount <- length(grep(paste0("^", "LF_S"), sampleNames))
-        
-        sampleGroups <- factor(c(rep("Low fat Control",lf_C_SamplesCount),
-                                 rep("Low fat Surgery",lf_S_SamplesCount)
-        ))
-        
-        groupColors <- c("Low fat Control" = "blue",
-                         "Low fat Surgery" = "red"
-        )
-        
-        desiredOrder <- c("LF_C", "LF_S")
-        
-      }else if(contrast == "HF_Surgery"){
-        
-        requiredColumns <- grep("^HF",colnames(ctsAll))
-        cts <- ctsAll[,requiredColumns]
-        
-        sampleNames <- colnames(cts)
-        
-        hf_C_SamplesCount <- length(grep(paste0("^", "HF_C"), sampleNames))
-        hf_S_SamplesCount <- length(grep(paste0("^", "HF_S"), sampleNames))
-        
-        sampleGroups <- factor(c(rep("High fat Control",hf_C_SamplesCount),
-                                 rep("High fat Surgery",hf_S_SamplesCount)
-        ))
-        
-        groupColors <- c("High fat Control" = "blue",
-                         "High fat Surgery" = "red"
-        )
-        
-        desiredOrder <- c("HF_C", "HF_S")
-        
-      }else if(contrast == "Surgery") {
-        
-        
-        cts <- ctsAll
-        sampleNames <- colnames(cts)
-        
-        hf_C_SamplesCount <- length(grep(paste0("^", "HF_C"), sampleNames))
-        hf_S_SamplesCount <- length(grep(paste0("^", "HF_S"), sampleNames))
-        lf_C_SamplesCount <- length(grep(paste0("^", "LF_C"), sampleNames))
-        lf_S_SamplesCount <- length(grep(paste0("^", "LF_S"), sampleNames))
-        
-        controlSamplesCount <- hf_C_SamplesCount + lf_C_SamplesCount
-        surgerySamplesCount <- hf_S_SamplesCount + lf_S_SamplesCount
-        
-        sampleGroups <- factor(c(rep("Control",controlSamplesCount),
-                                 rep("Surgery",surgerySamplesCount)
-        ))
-        
-        groupColors <- c("Control" = "blue",
-                         "Surgery" = "red"
-        )
-        
-        desiredOrder <- c("HF_C","LF_C", "HF_S","LF_S")
-        
-      }else if(contrast == "Diet"){
-        
-        cts <- ctsAll
-        sampleNames <- colnames(cts)
-        
-        hf_C_SamplesCount <- length(grep(paste0("^", "HF_C"), sampleNames))
-        hf_S_SamplesCount <- length(grep(paste0("^", "HF_S"), sampleNames))
-        lf_C_SamplesCount <- length(grep(paste0("^", "LF_C"), sampleNames))
-        lf_S_SamplesCount <- length(grep(paste0("^", "LF_S"), sampleNames))
-        
-        hfSamplesCount <- hf_C_SamplesCount + hf_S_SamplesCount
-        lfSamplesCount <- lf_C_SamplesCount + lf_S_SamplesCount
-        
-        sampleGroups <- factor(c(rep("Highfat",hfSamplesCount),
-                                 rep("Lowfat",lfSamplesCount)
-        ))
-        
-        groupColors <- c("Highfat" = "blue",
-                         "Lowfat" = "red"
-        )
-        
-        desiredOrder <- c("HF_C","HF_S", "LF_C","LF_S")
-        
-      }else {
-        
-        cts <- ctsAll
-        sampleNames <- colnames(cts)
-        
-        hf_C_SamplesCount <- length(grep(paste0("^", "HF_C"), sampleNames))
-        hf_S_SamplesCount <- length(grep(paste0("^", "HF_S"), sampleNames))
-        lf_C_SamplesCount <- length(grep(paste0("^", "LF_C"), sampleNames))
-        lf_S_SamplesCount <- length(grep(paste0("^", "LF_S"), sampleNames))
-        
-        sampleGroups <- factor(c(rep("High fat Control",hf_C_SamplesCount),
-                                 rep("High fat Surgery",hf_S_SamplesCount),
-                                 rep("Low fat Control",lf_C_SamplesCount),
-                                 rep("Low fat Surgery",lf_S_SamplesCount)
-        ))
-        
-        groupColors <- c("High fat Control" = "blue",
-                         "High fat Surgery" = "red",
-                         "Low fat Control" = "orange",
-                         "Low fat Surgery" = "green"
-        )
-        
-        desiredOrder <- c("HF_C","HF_S", "LF_C","LF_S")
-        
-      }
-      
-      sheetNames <- getSheetNames(paste0(dirPath,"SigGenes.xlsx"))
-      
-      if(!contrast %in% sheetNames) next
-      
-      sigDEresults <- read.xlsx(paste0(dirPath,"SigGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
-      
-      sigDEresults <- head(sigDEresults[order(sigDEresults$adj.P.Val),],n=50)
-      
-      for (i in 1:nrow(sigDEresults)) {
-        
-        if(!nzchar(sigDEresults$GeneSymbol[i])) sigDEresults$GeneSymbol[i] <- sigDEresults$EnsemblID[i]
-        
-      }
-      
-      sigGenes <- sigDEresults$EnsemblID
-      
-      sigGeneExpressionData <- cts[rownames(cts) %in% sigGenes,]
-      
-      sampleNames <- colnames(sigGeneExpressionData)
-      
-      orderSamples <- unlist(lapply(desiredOrder, function(prefix) {
-        sampleNames[grep(paste0("^", prefix), sampleNames)]
-      }))
-      
-      sigGeneExpressionData <- sigGeneExpressionData[,orderSamples]
-      
-      rownames(sigGeneExpressionData) <- sigDEresults$GeneSymbol
-      
-      scaledSigExpData <- t(scale(t(sigGeneExpressionData)))
-      
-      topAnnotation <- HeatmapAnnotation(
-        Group = sampleGroups,
-        col = list(Group = groupColors)
-      )
-      
-      jpeg(paste0(dirPath,contrast,"_TopHeatMap.jpeg"),height = 1200 ,width = 1000,quality = 100)
-      
-      topHeatmap <- Heatmap(scaledSigExpData,
-                            name = "Expression",
-                            row_names_side = "left",
-                            column_names_side = "top",
-                            clustering_distance_rows = "euclidean",
-                            cluster_columns = FALSE,
-                            top_annotation = topAnnotation,
-                            column_title = paste0("Heatmap of significant genes (FDR<0.05) for ",contrast," contrast of ",tissue," tissue"),
-                            column_title_gp = gpar(fontsize = 20, fontface = "bold")
-      )
-      
-      print(topHeatmap)
-      
-      dev.off()
-      
-      
-      
-    }
-    
-    
-    
-  }
-  
   
 }
 
@@ -1784,8 +1476,6 @@ PlotBoxPlotsForTOPGenes <- function(tissueOfInterest,contrasts,noOfGenes,testSta
   
 }
 
-
-
 AppendTissueNamesToAllFiles <- function(tissueOfInterest){
   
   dgeDir <- "data/LimmaResults/"
@@ -1841,10 +1531,6 @@ AppendTissueNamesToAllFiles <- function(tissueOfInterest){
   
 }
 
-
-
-
-
 GenerateHeatmapForSummaryValues <- function(inputFiles,OutputFiles){
   
   for (i in 1:length(inputFiles)) {
@@ -1888,9 +1574,6 @@ GenerateHeatmapForSummaryValues <- function(inputFiles,OutputFiles){
   
   
 }
-
-
-
 
 GenerateBarPlotsForPathways <- function(tissueOfInterest,pathwaysListNames,contrasts){
   
@@ -1937,8 +1620,6 @@ GenerateBarPlotsForPathways <- function(tissueOfInterest,pathwaysListNames,contr
   
   
 }
-
-
 
 GenerateSignificanceHeatmapForPathways <- function(tissueOfInterest,pathwaysListNames){
   
@@ -1992,8 +1673,6 @@ GenerateSignificanceHeatmapForPathways <- function(tissueOfInterest,pathwaysList
   
   
 }
-
-
 
 ConvertVennGeneListToSM <- function(tissueOfInterest){
   
@@ -2059,9 +1738,6 @@ ConvertVennGeneListToSM <- function(tissueOfInterest){
   
 }
 
-
-
-
 AppendRelevantFilesToAllGenes <- function(tissueOfInterest){
   
   
@@ -2096,11 +1772,6 @@ AppendRelevantFilesToAllGenes <- function(tissueOfInterest){
   
 }
 
-
-
-
-
-
 AppendRelevantFilesToAllPathways <- function(tissueOfInterest,pathwaysListNames){
   
   
@@ -2129,7 +1800,6 @@ AppendRelevantFilesToAllPathways <- function(tissueOfInterest,pathwaysListNames)
   
   
 }
-
 
 AddNotesToGeneFiles <- function(tissueOfInterest){
   
@@ -2169,13 +1839,6 @@ AddNotesToGeneFiles <- function(tissueOfInterest){
   }
   
 }
-
-
-
-
-
-
-
 
 AddNotesToPathwayFiles <- function(tissueOfInterest){
   
@@ -2220,8 +1883,6 @@ AddNotesToPathwayFiles <- function(tissueOfInterest){
   
 }
 
-
-
 DeleteUnnecessaryGeneFiles <- function(tissueOfInterest){
 
   
@@ -2251,13 +1912,11 @@ DeleteUnnecessaryGeneFiles <- function(tissueOfInterest){
   
 }
 
-
-
 DeleteUnnecessaryPathwayFiles <- function(tissueOfInterest){
   
   dataPath <- "data/Share/FGSEAResults/"
   
-  pathwayFilesToDeleteWithInTissue <- "MainPathways.xlsx"
+  pathwayFilesToDeleteWithInTissue <- c("MainPathways.xlsx","AllPathways.xlsx")
   
   pathwayFilesToDeleteWithInTissuePlots <- c("MainPathways.jpeg",
                                                     "TopPathways.jpeg",
@@ -2296,7 +1955,6 @@ DeleteUnnecessaryPathwayFiles <- function(tissueOfInterest){
   
   
 }
-
 
 DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
   
@@ -2344,6 +2002,43 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
     
   }
   
+  #Update significance of genes by including up or down regulation
+  
+  comGeneDf$Gene <- rownames(comGeneDf)
+  for (colName in comColNames) {
+    
+    if(colName == "Gene") next
+    
+    splitName <- strsplit(colName,"_")[[1]]
+    if(length(splitName)==3){
+      currentTissue <- splitName[1]
+      currentContrast <- paste0(splitName[2],"_",splitName[3])
+    }else if(length(splitName)==2){
+      currentTissue <- splitName[1]
+      currentContrast <- splitName[2]
+    }
+    
+    limmaResults <- read.xlsx(paste0("data/LimmaResults/",currentTissue,"/",currentTissue,".xlsx"),sheet = currentContrast,rowNames = TRUE) 
+    
+    for (i in 1:nrow(comGeneDf)) {
+      
+      if(comGeneDf[i,colName]==1){
+        logFC <- limmaResults$logFC[limmaResults$GeneSymbol==comGeneDf$Gene[i]]
+        if(length(logFC)!=1){
+          logFC <- limmaResults[limmaResults$GeneSymbol==comGeneDf$Gene[i],]
+          logFC <- logFC[order(logFC$adj.P.Val),]
+          logFC <- logFC$logFC[1]
+          
+        } 
+        
+        if(logFC < 0) comGeneDf[i,colName] <- -1
+      }
+      
+    }
+    
+  }
+  
+  comGeneDf <- comGeneDf[,colnames(comGeneDf)!="Gene"]
   
   
   tissueOccurenceDf <- as.data.frame(matrix(ncol = length(tissueOfInterest),nrow = length(geneList),data = 0))
@@ -2353,7 +2048,7 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
     tissueColNames <- paste0(tissue,"_",contrasts)
     tissuecomGeneDf <- comGeneDf[,tissueColNames]
     tissuecomGeneDf <- tissuecomGeneDf %>%
-      dplyr::mutate(TotalOccurence = rowSums(.[,1:length(tissueColNames)]))
+      dplyr::mutate(TotalOccurence = rowSums(abs(.[,1:length(tissueColNames)])))
     tissueOccurenceDf[,tissue] <- tissuecomGeneDf$TotalOccurence
   }
   
@@ -2364,8 +2059,64 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
   
   tissueOccurenceDf <- tissueOccurenceDf[order(tissueOccurenceDf$TotalOccurence,decreasing = TRUE),]
   
-  dfList <- list(comGeneDf,tissueOccurenceDf)
   
-  return(dfList)
+  write.csv(comGeneDf,"data/LimmaResults/ComprehensiveSignificantGeneInfo.csv",row.names = TRUE)
+  write.csv(tissueOccurenceDf,"data/LimmaResults/TissueSignificantGeneInfo.csv",row.names = TRUE)
+  
+  
+  comprehensiveData <- comGeneDf %>%
+    mutate(TotalOccurence = rowSums(abs(.[,1:32])))
+  
+  comprehensiveData <- comprehensiveData[order(comprehensiveData$TotalOccurence,decreasing = TRUE),]
+  
+  comprehensiveData <- head(comprehensiveData,n=50)
+  
+  comprehensiveData <- comprehensiveData[,!colSums(abs(comprehensiveData))==0]
+  
+  comprehensiveData <- as.matrix(comprehensiveData)
+  
+  hmdata <- comprehensiveData[,-ncol(comprehensiveData)]
+  
+  
+  
+  
+  
+  hm <- Heatmap(hmdata,
+                row_names_side = "left",
+                column_names_side = "top",
+                cluster_rows = FALSE,
+                column_title = "Heatmap of significant genes(top 50) across all comparisons",
+                column_title_gp = gpar(fontsize = 30, fontface = "bold"),
+                column_title_side = "bottom",
+                cluster_columns = FALSE,
+                heatmap_width = unit(25,"cm"),
+                heatmap_height = unit(40,"cm"),
+                border = TRUE,
+                show_heatmap_legend = FALSE,
+                col = colorRamp2(c(-1, 0, 1), c("blue", "white", "red")),
+                cell_fun = function(j, i, x, y, width, height, fill) {
+                  grid.rect(x, y, width, height, 
+                            gp = gpar(col = "black", fill = NA))  # Draw cell borders
+                }
+  )
+  
+  lgd = Legend(
+    labels = c("Up", "NotSig", "Down"),
+    title = "Significance",
+    legend_gp = gpar(fill = c("red", "white", "blue")),
+    border = TRUE,
+    direction = "horizontal", 
+    title_gp = gpar(fontsize = 14),
+    labels_gp = gpar(fontsize = 12)
+  )
+  
+  
+  jpeg(filename = "data/LimmaResults/ComprehensiveSignificantGeneHeatmap.jpeg",height = 1400,width = 1000, quality = 100)
+  
+  draw(hm,annotation_legend_list = list(lgd),
+       annotation_legend_side = "left"
+  )
+  
+  dev.off()
   
 }

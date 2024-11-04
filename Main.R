@@ -179,9 +179,8 @@ AddNotesToGeneFiles(tissueOfInterest = tissueOfInterest)
 #Add notes to Pathway files
 AddNotesToPathwayFiles(tissueOfInterest = tissueOfInterest)
 
-#Correct Heatmaps - One time use - Not required if you are rerunning the entire analysis (11/01/2024)
-#CorrectHeatmaps(tissueOfInterest)
-
+#Do Gene Abundance Analysis
+DoComprehensiveGeneAbundanceAnalysis(tissueOfInterest = tissueOfInterest)
 
 #Delete files works in data/Share folder only
 #Delete unnecessary gene files
@@ -191,10 +190,8 @@ DeleteUnnecessaryGeneFiles(tissueOfInterest = tissueOfInterest)
 DeleteUnnecessaryPathwayFiles(tissueOfInterest = tissueOfInterest)
 
 
-#Do Gene Abundance Analysis
-resultsList <- DoComprehensiveGeneAbundanceAnalysis(tissueOfInterest = tissueOfInterest)
-comprehensiveData <- resultsList[[1]]
-tissueData <- resultsList[[2]]
+
+
 
 #Append respective tissue names to all files
 # AppendTissueNamesToAllFiles(tissueOfInterest)
