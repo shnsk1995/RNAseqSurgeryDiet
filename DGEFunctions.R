@@ -1374,6 +1374,9 @@ Compare_MultipleContrasts <- function(cts,sampleInfo,geneInfo,tissueOfInterest){
   #Plot Volcano plots
   PlotVolcano(colnames(contrasts),tissueOfInterest,dirPath)
   
+  #Plot pValue histograms
+  PlotPValueHistogram(colnames(contrasts),tissueOfInterest,dirPath)
+  
   
   #Plot MA plots
   PlotMA(colnames(contrasts),tissueOfInterest,dirPath)

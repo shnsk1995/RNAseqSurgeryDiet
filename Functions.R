@@ -51,13 +51,32 @@ GetDGEObject <- function(cts,sampleInfo,geneInfo){
 
 DOPCA <- function(cts,sampleInfo,geneInfo,tissueOfInterest,samplesToExclude = c(),internal = FALSE, pcaPrior = NULL, filteredSamples = c()){
   
-  
   #Filter tissue data
   if(!internal){
     
-    sampleInfo <- sampleInfo[sampleInfo$tissuedetail==tissueOfInterest,]
-    samplesOfInterest <- sampleInfo$sampleid
-    cts <- cts[,samplesOfInterest]
+    if(tissueOfInterest == "Small Bowel Mucosa"){
+      
+      sampleInfo <- sampleInfo[sampleInfo$tissuegeneral==tissueOfInterest,]
+      samplesOfInterest <- sampleInfo$sampleid
+      cts <- cts[,samplesOfInterest]
+      plotWidth <- 24
+      plotHeight <- 20
+      titleSize <- 25
+      labelSize <- 8
+      
+    }else{
+      
+      sampleInfo <- sampleInfo[sampleInfo$tissuedetail==tissueOfInterest,]
+      samplesOfInterest <- sampleInfo$sampleid
+      cts <- cts[,samplesOfInterest]
+      plotWidth <- 12
+      plotHeight <- 10
+      titleSize <- 15
+      labelSize <- 5
+      
+    }
+    
+    
     
   }
   
@@ -117,7 +136,13 @@ DOPCA <- function(cts,sampleInfo,geneInfo,tissueOfInterest,samplesToExclude = c(
   
   #PCA Analysis
   pcaAnalysis <- prcomp(t(cpm(dge,log = TRUE,prior.count = 1)))
-  summary(pcaAnalysis)
+  pcaAnalysisSummary <- summary(pcaAnalysis)
+  varianceExplained <- pcaAnalysisSummary$importance[2,]
+  
+  screeData <- data.frame(
+    PC = factor(1:length(varianceExplained), levels = 1:length(varianceExplained)),
+    Variance = varianceExplained
+  )
   
   dirPath <- paste0("data/PCAplots")
   # Check if the directory exists to save plot
@@ -137,6 +162,7 @@ DOPCA <- function(cts,sampleInfo,geneInfo,tissueOfInterest,samplesToExclude = c(
   
   
   
+  
   #PCA plot
   if(internal){
     
@@ -144,9 +170,13 @@ DOPCA <- function(cts,sampleInfo,geneInfo,tissueOfInterest,samplesToExclude = c(
                                   groups = dge$samples$samplename,
                                   # labels = dge$samples$sampleid,
                                   var.axes = FALSE) +
-      geom_text_repel(aes(label = dge$samples$sampleid), size = 3,max.overlaps = Inf) +
+      geom_text_repel(aes(label = dge$samples$sampleid), size = labelSize,max.overlaps = Inf) +
       ggtitle("After filtering") +   
-      theme(plot.title = element_text(hjust = 0.5))
+      theme(plot.title = element_text(hjust = 0.5, size = titleSize),
+            axis.title = element_text(size = titleSize),
+            axis.text  = element_text(size = titleSize),
+            legend.title = element_text(size = titleSize),
+            legend.text = element_text(size = titleSize))
     
     plotCaption <- paste("Samples removed: ",paste(filteredSamples,collapse = ", "))
     
@@ -162,19 +192,42 @@ DOPCA <- function(cts,sampleInfo,geneInfo,tissueOfInterest,samplesToExclude = c(
           plot.caption = element_text(hjust = 0.5)
         )
     
-    ggsave(filename = paste0(dirPath,"/",tissueOfInterest,"_filtered.jpeg"),dualPlot,width = 12, height = 10, dpi = 600)
+    ggsave(filename = paste0(dirPath,"/",tissueOfInterest,"_filtered.jpeg"),dualPlot,width = plotWidth, height = plotHeight, dpi = 600)
     
   }else{
+    
+    
     
     pcaPlot <- ggbiplot::ggbiplot(pcaAnalysis,
                                   groups = dge$samples$samplename,
                                   # labels = dge$samples$sampleid,
                                   var.axes = FALSE) +
-      geom_text_repel(aes(label = dge$samples$sampleid), size = 3,max.overlaps = Inf) +
+      geom_text_repel(aes(label = dge$samples$sampleid), size = labelSize,max.overlaps = Inf) +
       ggtitle(paste0("PCA Plot of RNA-seq Data for ",tissueOfInterest," tissue")) +   
-      theme(plot.title = element_text(hjust = 0.5))
+      theme(plot.title = element_text(hjust = 0.5, size = titleSize),
+            axis.title = element_text(size = titleSize),
+            axis.text  = element_text(size = titleSize),
+            legend.title = element_text(size = titleSize),
+            legend.text = element_text(size = titleSize)
+            )
     
-    ggsave(filename = paste0(dirPath,"/",tissueOfInterest,".jpeg"),pcaPlot,width = 12, height = 10, dpi = 600)
+    ggsave(filename = paste0(dirPath,"/PCA.jpeg"),pcaPlot,width = plotWidth, height = plotHeight, dpi = 600)
+    
+    screePlot <- ggplot(screeData, aes(x = PC, y = Variance)) +
+      geom_bar(stat = "identity", fill = "pink", color = "black", alpha = 0.7) +
+      labs(
+        title = paste0("Scree Plot of PCA for ",tissueOfInterest," tissue"),
+        x = "Principal Component",
+        y = "Proportion of Variance Explained"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12)
+      )
+    
+    ggsave(filename = paste0(dirPath,"/Scree.jpeg"),screePlot,width = plotWidth, height = plotHeight, dpi = 600)
     
   }
   
@@ -947,6 +1000,40 @@ PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
   
 }
 
+PlotPValueHistogram <- function(contrasts,tissueOfInterest,dirPath){
+  
+  pValueHistogramList <- list()
+  
+  for (contrast in contrasts) {
+    
+    allGenes <- read.xlsx(paste0(dirPath,"AllGenes.xlsx"), sheet = contrast,rowNames = TRUE, colNames = TRUE)
+    
+    pValueHistogramPlot <- ggplot(allGenes, aes(x = P.Value)) +
+      geom_histogram(binwidth = 0.05, color = "black", fill = "lightblue", alpha = 0.7) +
+      labs(
+        title = paste0(contrast," contrast"),
+        x = "P-Value",
+        y = "Frequency"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 30, face = "bold"),
+        axis.title = element_text(size = 30),
+        axis.text = element_text(size = 25)
+      )
+    
+    pValueHistogramList <- append(pValueHistogramList,list(pValueHistogramPlot))
+    
+  }
+  
+  
+  pValueHistogramGrid <- plot_grid(plotlist =  pValueHistogramList,nrow = 5,ncol = 1) + 
+    ggtitle(paste0("pValue histograms\n",tissueOfInterest," tissue"))+
+    theme(plot.title = element_text(hjust = 0.5, size = 45,face = "bold"))
+  
+  ggsave(paste0(dirPath,"pValueHistogram.jpeg"), pValueHistogramGrid, width = 20, height = 40,dpi = 600)
+  
+}
 
 PlotMA <- function(contrasts,tissueOfInterest,dirPath){
   
