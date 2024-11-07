@@ -3,7 +3,7 @@ source("Functions.R")
 source("DGEFunctions.R")
 source("FGSEAFunctions.R")
 source("HigherLevelAnalysis.R")
-
+source("Scratch.R")
 
 #Read data
 cts <- as.data.frame(read.csv("data/counts.csv",row.names = 1))
@@ -120,7 +120,7 @@ for (tissue in tissueOfInterest) {
 SummarizePathwayFDR(tissueOfInterest,0.05,pathwayNames = pathwaysListNames)
 SummarizePathwayPValue(tissueOfInterest,0.001,pathwayNames = pathwaysListNames)
 
-#Save and plot top pathways
+#Save and plot enrichment plots (top pathways, main pathways and main pathways data files code also included but commented)
 for (tissue in tissueOfInterest) {
   
   SaveAndPlotTopPathways(tissue = tissue,pathways = pathwaysList,pathwayNames = pathwaysListNames)

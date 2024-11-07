@@ -73,8 +73,9 @@ PlotPathwayHeatmaps <- function(tissueOfInterest,pathways,pathwayNames){
                          column_names_side = "top",
                          col = colFun,
                          border = TRUE,
-                         row_names_gp = gpar(fontsize = 10),
-                         heatmap_width = unit(30,"cm"),
+                         row_names_gp = gpar(fontsize = 15),
+                         column_names_gp = gpar(fontsize = 12),
+                         heatmap_width = unit(28,"cm"),
                          heatmap_height = unit(40,"cm"),
                          show_heatmap_legend = FALSE,
                          rect_gp = gpar(col = "black", lwd = 1),
@@ -88,12 +89,12 @@ PlotPathwayHeatmaps <- function(tissueOfInterest,pathways,pathwayNames){
         legend_gp = gpar(fill = c("red", "white", "blue")),
         border = TRUE,
         direction = "horizontal", 
-        title_gp = gpar(fontsize = 14),
-        labels_gp = gpar(fontsize = 12)
+        title_gp = gpar(fontsize = 15),
+        labels_gp = gpar(fontsize = 15)
       )
       
       
-      jpeg(paste0(writePath,pathwayNames[i],"_",contrast,"_PathwayHeatMap.jpeg"),height = 1400,width = 1400,quality = 100)
+      jpeg(paste0(writePath,pathwayNames[i],"_",contrast,"_PathwayHeatMap.jpeg"),height = 1400,width = 1600,quality = 100)
       draw(heatMap,annotation_legend_list = list(lgd),
            annotation_legend_side = "bottom"
       )

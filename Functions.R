@@ -750,6 +750,98 @@ PlotVennDiagrams <- function(fit,contrasts,geneInfo,tissueOfInterest,dirPath){
   
 }
 
+#Version1 - Works fine but names not clearly visible
+# PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
+#   
+#   volcanoPlotList <- list()
+#   
+#   for (contrast in contrasts) {
+#     allGenes <- read.xlsx(paste0(dirPath,"AllGenes.xlsx"), sheet = contrast,rowNames = TRUE, colNames = TRUE)
+#     #allGenes <- read.csv(paste0(dirPath,"/",contrast,"_AllGenes.csv"))
+#     
+#     sheetNames <- getSheetNames(paste0(dirPath,"SigGenes.xlsx"))
+#     
+#     
+#     if(contrast %in% sheetNames){
+#       
+#       sigGenes <- read.xlsx(paste0(dirPath,"SigGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
+#       
+#       top10 <- head(sigGenes,n=10)
+#       
+#       #Volcano plot to visualize the results
+#       volcanoPlot <- allGenes %>%
+#         ggplot(aes(x = logFC,
+#                    y = -log10(adj.P.Val),
+#                    colour = isSignificant)) +
+#         geom_vline(xintercept = 1, linetype = "dotted") +
+#         geom_vline(xintercept = -1, linetype = "dotted") +
+#         geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
+#         geom_point(size = 1, alpha = 0.5) +
+#         scale_colour_manual(values = c("grey", "red")) +
+#         #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
+#         geom_text_repel(data = top10 ,aes(label = GeneSymbol)) +
+#         ggtitle(paste0(contrast,", Thresholds: FDR=0.05, logFC=1")) +
+#         theme(plot.title = element_text(hjust = 0.5))
+#       
+#       volcanoPlotList <- append(volcanoPlotList,list(volcanoPlot))
+#       
+#     }else{
+# 
+#       
+#       top10 <- as.data.frame(matrix(ncol = ncol(allGenes),nrow = 0))
+#       p <- 0.001
+#       while (TRUE) {
+#         
+#         allGenes <- allGenes %>%
+#           dplyr::mutate(isPValSignificant = case_when(
+#             P.Value < p & abs(logFC) > 1 ~ TRUE,
+#             TRUE ~ FALSE
+#           ))
+#         
+#         sigGenes <- allGenes %>%
+#           dplyr::filter(isPValSignificant == TRUE)
+#         
+#         top10 <- head(sigGenes,n=10)
+#         
+#         if(nrow(top10) > 0) break
+#         
+#         p <- p + 0.001
+#         
+#       }
+#       
+#       #Volcano plot to visualize the results
+#       volcanoPlot <- allGenes %>%
+#         ggplot(aes(x = logFC,
+#                    y = -log10(P.Value),
+#                    colour = isPValSignificant)) +
+#         geom_vline(xintercept = 1, linetype = "dotted") +
+#         geom_vline(xintercept = -1, linetype = "dotted") +
+#         geom_hline(yintercept = -log10(p), linetype = "dotted") +
+#         geom_point(size = 1, alpha = 0.5) +
+#         scale_colour_manual(values = c("grey", "red")) +
+#         #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
+#         geom_text_repel(data = top10 ,aes(label = GeneSymbol)) +
+#         ggtitle(paste0(contrast,", Thresholds: Pval=",p,", logFC=1")) +
+#         theme(plot.title = element_text(hjust = 0.5))
+#       
+#       volcanoPlotList <- append(volcanoPlotList,list(volcanoPlot))
+#       
+#     } 
+#     
+#     
+#     
+#     
+#   }
+#   
+#   volcanoPlotGrid <- plot_grid(plotlist =  volcanoPlotList) + 
+#     ggtitle(paste0("Volcano plots of different contrasts for ",tissueOfInterest," tissue"))+
+#     theme(plot.title = element_text(hjust = 0.5, size = 20))
+#   
+#   ggsave(paste0(dirPath,"VolcanoPlot.jpeg"), volcanoPlotGrid, width = 18, height = 18,dpi = 300)
+#   
+# }
+
+#Version2 - Corrected for unclear labels - Tested manually but not in loop
 PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
   
   volcanoPlotList <- list()
@@ -778,14 +870,22 @@ PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
         geom_point(size = 1, alpha = 0.5) +
         scale_colour_manual(values = c("grey", "red")) +
         #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
-        geom_text_repel(data = top10 ,aes(label = GeneSymbol)) +
-        ggtitle(paste0(contrast,", Thresholds: FDR=0.05, logFC=1")) +
-        theme(plot.title = element_text(hjust = 0.5))
+        geom_text_repel(data = top10 ,aes(label = GeneSymbol),size = 5) +
+        ggtitle(paste0(contrast,", Thresholds: FDR<0.05, logFC>1")) +
+        guides(color = guide_legend(title = "IsSignificant")) +
+        theme(plot.title = element_text(hjust = 0.5,size = 15),
+              legend.title = element_text(size = 15),
+              legend.text = element_text(size = 15),
+              axis.title = element_text(size = 15),
+              axis.text = element_text(size = 10)
+        )
+      
+      if(!contrast == contrasts[length(contrasts)]) volcanoPlot <- volcanoPlot + theme(legend.position = "none")
       
       volcanoPlotList <- append(volcanoPlotList,list(volcanoPlot))
       
     }else{
-
+      
       
       top10 <- as.data.frame(matrix(ncol = ncol(allGenes),nrow = 0))
       p <- 0.001
@@ -819,9 +919,16 @@ PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
         geom_point(size = 1, alpha = 0.5) +
         scale_colour_manual(values = c("grey", "red")) +
         #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
-        geom_text_repel(data = top10 ,aes(label = GeneSymbol)) +
-        ggtitle(paste0(contrast,", Thresholds: Pval=",p,", logFC=1")) +
-        theme(plot.title = element_text(hjust = 0.5))
+        geom_text_repel(data = top10 ,aes(label = GeneSymbol), size = 5) +
+        ggtitle(paste0(contrast,", Thresholds: Pval<",p,", logFC>1")) +
+        guides(color = guide_legend(title = "IsSignificant")) +
+        theme(plot.title = element_text(hjust = 0.5,size = 15),
+              legend.title = element_text(size = 15),
+              legend.text = element_text(size = 15),
+              axis.title = element_text(size = 15),
+              axis.text = element_text(size = 10))
+      
+      if(!contrast == contrasts[length(contrasts)]) volcanoPlot <- volcanoPlot + theme(legend.position = "none")
       
       volcanoPlotList <- append(volcanoPlotList,list(volcanoPlot))
       
@@ -832,13 +939,14 @@ PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
     
   }
   
-  volcanoPlotGrid <- plot_grid(plotlist =  volcanoPlotList) + 
+  volcanoPlotGrid <- plot_grid(plotlist =  volcanoPlotList,nrow = 1,ncol = 5) + 
     ggtitle(paste0("Volcano plots of different contrasts for ",tissueOfInterest," tissue"))+
     theme(plot.title = element_text(hjust = 0.5, size = 20))
   
-  ggsave(paste0(dirPath,"VolcanoPlot.jpeg"), volcanoPlotGrid, width = 18, height = 18,dpi = 300)
+  ggsave(paste0(dirPath,"VolcanoPlot.jpeg"), volcanoPlotGrid, width = 35, height = 9,dpi = 600)
   
 }
+
 
 PlotMA <- function(contrasts,tissueOfInterest,dirPath){
   
@@ -1128,8 +1236,11 @@ SummarizeDEGenesFDR <- function(tissues,fdr,logFC){
       geom_col() +
       labs(y="No of significant DE genes")+
       ggtitle(paste0("Contrast : ",contrast,", FDR cutoff: ",fdr,", logFC cutoff: ",logFC))+
-      theme(plot.title = element_text(hjust = 0.5),
-            axis.text.x = element_text(angle = 45, hjust = 1)
+      theme(plot.title = element_text(hjust = 0.5, size = 14),
+            axis.text.x = element_text(angle = 45, hjust = 1,size = 15),
+            axis.text.y = element_text(size = 15),
+            axis.title.x = element_text(size = 15),
+            axis.title.y = element_text(size = 15)
       )
     
     
@@ -1144,7 +1255,7 @@ SummarizeDEGenesFDR <- function(tissues,fdr,logFC){
     ggtitle(paste0("Total significant DE genes of different contrasts Vs tissues"))+
     theme(plot.title = element_text(hjust = 0.5, size = 20))
   
-  ggsave(paste0("data/LimmaResults/GeneFDRSummary.jpeg"), summaryPlotGrid, width = 18, height = 18,dpi = 300)
+  ggsave(paste0("data/LimmaResults/GeneFDRSummary.jpeg"), summaryPlotGrid, width = 20, height = 18,dpi = 300)
   
   summaryPlotDf <- summaryPlotDf %>%
     dplyr::select(last_col(), everything())
@@ -1209,8 +1320,11 @@ SummarizeDEGenesPValue <- function(tissues,pValue,logFC){
       geom_col() +
       labs(y="No of significant DE genes")+
       ggtitle(paste0("Contrast : ",contrast,", Pvalue cutoff: ",pValue,", logFC cutoff: ",logFC))+
-      theme(plot.title = element_text(hjust = 0.5),
-            axis.text.x = element_text(angle = 45, hjust = 1)
+      theme(plot.title = element_text(hjust = 0.5, size = 14),
+            axis.text.x = element_text(angle = 45, hjust = 1,size = 15),
+            axis.text.y = element_text(size = 15),
+            axis.title.x = element_text(size = 15),
+            axis.title.y = element_text(size = 15)
       )
     
     
@@ -1223,7 +1337,7 @@ SummarizeDEGenesPValue <- function(tissues,pValue,logFC){
     ggtitle(paste0("Total significant DE genes of different contrasts Vs tissues"))+
     theme(plot.title = element_text(hjust = 0.5, size = 20))
   
-  ggsave(paste0("data/LimmaResults/GenePValueSummary.jpeg"), summaryPlotGrid, width = 18, height = 18,dpi = 300)
+  ggsave(paste0("data/LimmaResults/GenePValueSummary.jpeg"), summaryPlotGrid, width = 20, height = 18,dpi = 300)
   
   summaryPlotDf <- summaryPlotDf %>%
     dplyr::select(last_col(), everything())
@@ -1292,8 +1406,11 @@ SummarizePathwayFDR <- function(tissues,fdr,pathwayNames=c()){
         geom_col() +
         labs(y="No of significant pathways")+
         ggtitle(paste0("Contrast : ",contrast,", FDR cutoff: ",fdr))+
-        theme(plot.title = element_text(hjust = 0.5),
-              axis.text.x = element_text(angle = 45, hjust = 1)
+        theme(plot.title = element_text(hjust = 0.5, size = 14),
+              axis.text.x = element_text(angle = 45, hjust = 1,size = 15),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 15),
+              axis.title.y = element_text(size = 15)
         )
       
       
@@ -1308,7 +1425,7 @@ SummarizePathwayFDR <- function(tissues,fdr,pathwayNames=c()){
       ggtitle(paste0("Total significant pathways of different contrasts Vs tissues"))+
       theme(plot.title = element_text(hjust = 0.5, size = 20))
     
-    ggsave(paste0("data/FGSEAResults/",pathwayName,"_PathwayFDRSummary.jpeg"), summaryPlotGrid, width = 18, height = 18,dpi = 300)
+    ggsave(paste0("data/FGSEAResults/",pathwayName,"_PathwayFDRSummary.jpeg"), summaryPlotGrid, width = 20, height = 18,dpi = 300)
     
     summaryPlotDf <- summaryPlotDf %>%
       dplyr::select(last_col(), everything())
@@ -1379,9 +1496,11 @@ SummarizePathwayPValue <- function(tissues,pValue,pathwayNames=c()){
         geom_col() +
         labs(y="No of significant pathways")+
         ggtitle(paste0("Contrast : ",contrast,", Pvalue cutoff: ",pValue))+
-        theme(plot.title = element_text(hjust = 0.5),
-              axis.text.x = element_text(angle = 45, hjust = 1)
-        )
+        theme(plot.title = element_text(hjust = 0.5, size = 14),
+              axis.text.x = element_text(angle = 45, hjust = 1,size = 15),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 15),
+              axis.title.y = element_text(size = 15))
       
       
       summaryPlotList <- append(summaryPlotList,list(summaryPlot))
@@ -1395,7 +1514,7 @@ SummarizePathwayPValue <- function(tissues,pValue,pathwayNames=c()){
       ggtitle(paste0("Total significant pathways of different contrasts Vs tissues"))+
       theme(plot.title = element_text(hjust = 0.5, size = 20))
     
-    ggsave(paste0("data/FGSEAResults/",pathwayName,"_PathwayPValueSummary.jpeg"), summaryPlotGrid, width = 18, height = 18,dpi = 300)
+    ggsave(paste0("data/FGSEAResults/",pathwayName,"_PathwayPValueSummary.jpeg"), summaryPlotGrid, width = 20, height = 18,dpi = 300)
     
     summaryPlotDf <- summaryPlotDf %>%
       dplyr::select(last_col(), everything())
@@ -1464,10 +1583,16 @@ PlotBoxPlotsForTOPGenes <- function(tissueOfInterest,contrasts,noOfGenes,testSta
              y="logCPM",
              title = paste0("Box plot of top ",noOfGenes," genes in ",contrast," contrast of  ",tissue," tissue"), 
              caption = paste0("Genes ordered based on : ", testStatistic, " and logFC threshold: ",logFC))+
-        theme(plot.title = element_text(hjust = 0.5), 
-              plot.caption = element_text(hjust = 0.5))
+        theme(plot.title = element_text(hjust = 0.5, size = 15), 
+              plot.caption = element_text(hjust = 0.5, size = 15),
+              axis.title = element_text(size = 15),
+              axis.text.x = element_text(size = 15),
+              axis.text.y = element_text(size = 10),
+              legend.text = element_text(size = 15),
+              legend.title = element_text(size = 15)
+              )
       
-      ggsave(paste0(dirPath,contrast,"_BoxPlot.jpeg"),plot = boxPlot,height = 10, width = 10,dpi = 300)
+      ggsave(paste0(dirPath,contrast,"_BoxPlot.jpeg"),plot = boxPlot,height = 10, width = 10,dpi = 600)
       
     }
     
@@ -1602,14 +1727,20 @@ GenerateBarPlotsForPathways <- function(tissueOfInterest,pathwaysListNames,contr
         
         plot <- ggplot(sheet, aes(x = reorder(pathway,NES), y = NES, fill = padj)) +
           geom_bar(stat = "identity", position = "stack") +
-          scale_fill_gradient(low = "red", high = "blue", name = "padj") +
+          scale_fill_gradient(low = "blue", high = "red", name = "padj",transform = "reverse") +
           coord_flip() + 
           labs(title = paste0("Up- and Down-Regulated Pathways, FDR < 0.05 \n",tissue," tissue, ",contrast," contrast"), x = "Pathway", y = "NES") +
           theme_minimal() +
-          theme(legend.position = "right",plot.title = element_text(hjust = 0.5))
+          theme(legend.position = "right",
+                plot.title = element_text(hjust = 0.5,size = 15),
+                axis.title.x = element_text(size = 15),
+                axis.title.y = element_text(size = 15),
+                axis.text.y = element_text(size = 15,colour = "black",),
+                legend.text = element_text(size = 15),
+                legend.title = element_text(size = 15))
           
         
-        ggsave(filename = outputFile,height = 10, width = 8,  dpi = 300)
+        ggsave(filename = outputFile,height = 10, width = 12,  dpi = 600)
         
       }
       
@@ -2087,6 +2218,8 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
                 cluster_rows = FALSE,
                 column_title = "Heatmap of significant genes(top 50) across all comparisons",
                 column_title_gp = gpar(fontsize = 30, fontface = "bold"),
+                row_names_gp = gpar(fontsize = 15),
+                column_names_gp = gpar(fontsize = 15),
                 column_title_side = "bottom",
                 cluster_columns = FALSE,
                 heatmap_width = unit(25,"cm"),
@@ -2106,12 +2239,12 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
     legend_gp = gpar(fill = c("red", "white", "blue")),
     border = TRUE,
     direction = "horizontal", 
-    title_gp = gpar(fontsize = 14),
-    labels_gp = gpar(fontsize = 12)
+    title_gp = gpar(fontsize = 15),
+    labels_gp = gpar(fontsize = 15)
   )
   
   
-  jpeg(filename = "data/LimmaResults/ComprehensiveSignificantGeneHeatmap.jpeg",height = 1400,width = 1000, quality = 100)
+  jpeg(filename = "data/LimmaResults/ComprehensiveSignificantGeneHeatmap.jpeg",height = 1400,width = 1100, quality = 100)
   
   draw(hm,annotation_legend_list = list(lgd),
        annotation_legend_side = "left"
