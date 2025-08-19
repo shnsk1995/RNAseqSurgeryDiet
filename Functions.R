@@ -706,102 +706,325 @@ PlotBioNTechCorr <- function(fit,contrasts,dirPath){
   
 }
 
-PlotVennDiagrams <- function(fit,contrasts,geneInfo,tissueOfInterest,dirPath){
+#Venn with adjusted p value
+# PlotVennDiagrams <- function(fit,contrasts,geneInfo,tissueOfInterest,dirPath){
+#   
+#   
+#   contrasts <- contrasts[contrasts!="Surgery_Diet"]
+#   
+#   decidedTests <- decideTests(fit,method = "separate",adjust.method = "fdr")
+#   
+#   decidedTests <- decidedTests[,colnames(decidedTests) != "Surgery_Diet"]
+#   
+#   vennCounts <- vennCounts(decidedTests)
+#   
+#   vennCounts <- as.data.frame(as.table(vennCounts))
+#   
+#   vennCounts <- pivot_wider(vennCounts,names_from = Var2, values_from = Freq)
+#   
+#   vennCounts <- vennCounts[,-1]
+#   
+#   write.csv(vennCounts,paste0(dirPath,"VennCounts.csv"),row.names = FALSE)
+#   
+#   vennCounts <- vennCounts[vennCounts$Counts!=0,]
+#   
+#   vennCounts <- vennCounts[!(vennCounts$HF_Surgery == 0 &
+#                                vennCounts$LF_Surgery == 0 &
+#                                vennCounts$Diet == 0 &
+#                                vennCounts$Surgery == 0),]
+#   
+#   for (i in 1:nrow(vennCounts)) {
+#     
+#     selectedContrasts <- colnames(vennCounts)[which(vennCounts[i,(1:4)] == 1)]
+#     nonSelectedContrasts <- setdiff(colnames(decidedTests), selectedContrasts)
+#     
+#     filteredGenes <- decidedTests[
+#           rowSums(abs(decidedTests[, selectedContrasts, drop = FALSE]) == 1) == length(selectedContrasts) &  
+#             rowSums(abs(decidedTests[, nonSelectedContrasts, drop = FALSE]) == 1) == 0, 
+#         ]
+#      
+#     commonGenes <- rownames(filteredGenes)
+#     
+#     commonGeneSymbols <- geneInfo[geneInfo$ensembl_gene_id %in% commonGenes,]$gene_name
+#     
+#     if(i==1){
+#       # Create a new workbook if the file doesn't exist
+#       wb <- createWorkbook()
+#       
+#       # Add a new sheet
+#       firstCharacters <- substr(selectedContrasts,1,1)
+#       sheetName <- paste(firstCharacters,collapse = "_")
+#       addWorksheet(wb, sheetName)
+#       
+#       # Optionally, write some data to the new sheet
+#       writeData(wb, sheetName,commonGeneSymbols, startCol = 1, startRow = 1)
+#       
+#       # Save the new workbook
+#       saveWorkbook(wb, paste0(dirPath,"VennGeneList.xlsx"), overwrite = TRUE)
+#     }else{
+#       
+#       # Load the existing workbook
+#       wb <- loadWorkbook(paste0(dirPath,"VennGeneList.xlsx"))
+#       
+#       # Add a new sheet (check if the sheet already exists first)
+#       firstCharacters <- substr(selectedContrasts,1,1)
+#       sheetName <- paste(firstCharacters,collapse = "_")
+#       if (!(sheetName %in% names(wb))) {
+#         addWorksheet(wb, sheetName)
+#       }
+#       
+#       # Optionally, write some data to the new sheet
+#       writeData(wb, sheetName,commonGeneSymbols, startCol = 1, startRow = 1)
+#       
+#       # Save the workbook
+#       saveWorkbook(wb, paste0(dirPath,"VennGeneList.xlsx"), overwrite = TRUE)
+#       
+#     }
+#     
+#   }
+#   
+#   baseColors <- c("red","blue","green")
+#   
+#   custom_palette <- colorRampPalette(baseColors)
+#   
+#   colors <- custom_palette(length(contrasts))
+#   
+#   jpeg(filename = paste0(dirPath,"Venn.jpeg"),width = 1000,height = 800,quality = 100)
+#   
+#   
+#   vennDiagram(decidedTests,
+#               lwd = 1,
+#               circle.col = colors,
+#               names = contrasts,
+#               main = paste0("Venn diagram for various contrasts in ",tissueOfInterest," tissue")
+#   )
+#   
+#   
+#   dev.off()
+#   
+# }
+
+
+#Venn with nominal p value
+PlotVennDiagrams <- function(fit, contrasts, geneInfo, tissueOfInterest, dirPath) {
   
+  # Remove "Surgery_Diet" from contrasts
+  contrasts <- contrasts[contrasts != "Surgery_Diet"]
   
-  contrasts <- contrasts[contrasts!="Surgery_Diet"]
+  # Nominal p-value filtering (0.05) without adjustment
+  decidedTests <- ifelse(fit$p.value < 0.05, 
+                         ifelse(fit$coef > 0, 1, -1), 
+                         0)
+  decidedTests <- as.matrix(decidedTests)
+  colnames(decidedTests) <- colnames(fit$p.value)
+  rownames(decidedTests) <- rownames(fit$p.value)
   
-  decidedTests <- decideTests(fit,method = "separate",adjust.method = "fdr")
+  # Remove "Surgery_Diet" column
+  decidedTests <- decidedTests[, colnames(decidedTests) != "Surgery_Diet"]
   
-  decidedTests <- decidedTests[,colnames(decidedTests) != "Surgery_Diet"]
-  
+  # Venn counts
   vennCounts <- vennCounts(decidedTests)
-  
   vennCounts <- as.data.frame(as.table(vennCounts))
+  vennCounts <- tidyr::pivot_wider(vennCounts, names_from = Var2, values_from = Freq)
+  vennCounts <- vennCounts[, -1]
   
-  vennCounts <- pivot_wider(vennCounts,names_from = Var2, values_from = Freq)
+  # Save Venn counts
+  write.csv(vennCounts, paste0(dirPath, "VennCounts.csv"), row.names = FALSE)
   
-  vennCounts <- vennCounts[,-1]
-  
-  write.csv(vennCounts,paste0(dirPath,"VennCounts.csv"),row.names = FALSE)
-  
-  vennCounts <- vennCounts[vennCounts$Counts!=0,]
-  
+  # Filter out zero counts and cases where all are zero
+  vennCounts <- vennCounts[vennCounts$Counts != 0, ]
   vennCounts <- vennCounts[!(vennCounts$HF_Surgery == 0 &
                                vennCounts$LF_Surgery == 0 &
                                vennCounts$Diet == 0 &
-                               vennCounts$Surgery == 0),]
+                               vennCounts$Surgery == 0), ]
   
+  # Loop through Venn combinations and save gene lists
   for (i in 1:nrow(vennCounts)) {
     
-    selectedContrasts <- colnames(vennCounts)[which(vennCounts[i,(1:4)] == 1)]
+    selectedContrasts <- colnames(vennCounts)[which(vennCounts[i, (1:4)] == 1)]
     nonSelectedContrasts <- setdiff(colnames(decidedTests), selectedContrasts)
     
     filteredGenes <- decidedTests[
-          rowSums(abs(decidedTests[, selectedContrasts, drop = FALSE]) == 1) == length(selectedContrasts) &  
-            rowSums(abs(decidedTests[, nonSelectedContrasts, drop = FALSE]) == 1) == 0, 
-        ]
-     
+      rowSums(abs(decidedTests[, selectedContrasts, drop = FALSE]) == 1) == length(selectedContrasts) &
+        rowSums(abs(decidedTests[, nonSelectedContrasts, drop = FALSE]) == 1) == 0, 
+    ]
+    
     commonGenes <- rownames(filteredGenes)
+    commonGeneSymbols <- geneInfo[geneInfo$ensembl_gene_id %in% commonGenes, ]$gene_name
     
-    commonGeneSymbols <- geneInfo[geneInfo$ensembl_gene_id %in% commonGenes,]$gene_name
-    
-    if(i==1){
-      # Create a new workbook if the file doesn't exist
-      wb <- createWorkbook()
-      
-      # Add a new sheet
-      firstCharacters <- substr(selectedContrasts,1,1)
-      sheetName <- paste(firstCharacters,collapse = "_")
-      addWorksheet(wb, sheetName)
-      
-      # Optionally, write some data to the new sheet
-      writeData(wb, sheetName,commonGeneSymbols, startCol = 1, startRow = 1)
-      
-      # Save the new workbook
-      saveWorkbook(wb, paste0(dirPath,"VennGeneList.xlsx"), overwrite = TRUE)
-    }else{
-      
-      # Load the existing workbook
-      wb <- loadWorkbook(paste0(dirPath,"VennGeneList.xlsx"))
-      
-      # Add a new sheet (check if the sheet already exists first)
-      firstCharacters <- substr(selectedContrasts,1,1)
-      sheetName <- paste(firstCharacters,collapse = "_")
+    if (i == 1) {
+      wb <- openxlsx::createWorkbook()
+      firstCharacters <- substr(selectedContrasts, 1, 1)
+      sheetName <- paste(firstCharacters, collapse = "_")
+      openxlsx::addWorksheet(wb, sheetName)
+      openxlsx::writeData(wb, sheetName, commonGeneSymbols, startCol = 1, startRow = 1)
+      openxlsx::saveWorkbook(wb, paste0(dirPath, "VennGeneList.xlsx"), overwrite = TRUE)
+    } else {
+      wb <- openxlsx::loadWorkbook(paste0(dirPath, "VennGeneList.xlsx"))
+      firstCharacters <- substr(selectedContrasts, 1, 1)
+      sheetName <- paste(firstCharacters, collapse = "_")
       if (!(sheetName %in% names(wb))) {
-        addWorksheet(wb, sheetName)
+        openxlsx::addWorksheet(wb, sheetName)
       }
-      
-      # Optionally, write some data to the new sheet
-      writeData(wb, sheetName,commonGeneSymbols, startCol = 1, startRow = 1)
-      
-      # Save the workbook
-      saveWorkbook(wb, paste0(dirPath,"VennGeneList.xlsx"), overwrite = TRUE)
-      
+      openxlsx::writeData(wb, sheetName, commonGeneSymbols, startCol = 1, startRow = 1)
+      openxlsx::saveWorkbook(wb, paste0(dirPath, "VennGeneList.xlsx"), overwrite = TRUE)
     }
     
   }
   
-  baseColors <- c("red","blue","green")
-  
+  # Color palette
+  baseColors <- c("red", "blue", "green")
   custom_palette <- colorRampPalette(baseColors)
-  
   colors <- custom_palette(length(contrasts))
   
-  jpeg(filename = paste0(dirPath,"Venn.jpeg"),width = 1000,height = 800,quality = 100)
+  # # Save Venn diagram image
+  # jpeg(filename = paste0(dirPath, "Venn.jpeg"), width = 1000, height = 900, quality = 100)
+  # vennDiagram(decidedTests,
+  #             lwd = 1,
+  #             circle.col = colors,
+  #             names = contrasts,
+  #             main = paste0("Venn diagram for various contrasts in ", tissueOfInterest, " tissue. Pval < 0.05")
+  # )
+  # dev.off()
   
+  
+  # Save Venn diagram image
+  jpeg(filename = paste0(dirPath, "Venn.jpeg"), width = 1000, height = 800, quality = 100)
+  
+  
+  # Increase top margin to give room for big title
+  old_par <- par(mar = c(5, 5, 6, 5))  # bottom, left, top, right
   
   vennDiagram(decidedTests,
               lwd = 1,
               circle.col = colors,
               names = contrasts,
-              main = paste0("Venn diagram for various contrasts in ",tissueOfInterest," tissue")
+              cex = 2.0,         # Increase set label text size
+              cex.main = 1.5,    # Increase title size
+              main = paste0("Venn diagram for various contrasts in ", tissueOfInterest, " tissue. Pval < 0.05")
   )
   
+  par(old_par) # restore original margins
   
   dev.off()
   
+  
 }
+
+
+
+
+
+
+#Venn with nominal p value
+PlotVennDiagramsIleum <- function(fit, contrasts, geneInfo, tissueOfInterest, dirPath) {
+  
+  browser()
+  
+  # Nominal p-value filtering (0.05) without adjustment
+  decidedTests <- ifelse(fit$p.value < 0.05, 
+                         ifelse(fit$coef > 0, 1, -1), 
+                         0)
+  decidedTests <- as.matrix(decidedTests)
+  colnames(decidedTests) <- colnames(fit$p.value)
+  rownames(decidedTests) <- rownames(fit$p.value)
+  
+  # Venn counts
+  vennCounts <- vennCounts(decidedTests)
+  vennCounts <- as.data.frame(as.table(vennCounts))
+  vennCounts <- tidyr::pivot_wider(vennCounts, names_from = Var2, values_from = Freq)
+  vennCounts <- vennCounts[, -1]
+  
+  # Save Venn counts
+  write.csv(vennCounts, paste0(dirPath, "VennCounts.csv"), row.names = FALSE)
+  
+  # Filter out zero counts and cases where all are zero
+  vennCounts <- vennCounts[vennCounts$Counts != 0, ]
+  # vennCounts <- vennCounts[!(vennCounts$HF_Surgery == 0 &
+  #                              vennCounts$LF_Surgery == 0 &
+  #                              vennCounts$Diet == 0 &
+  #                              vennCounts$Surgery == 0), ]
+  
+  # Loop through Venn combinations and save gene lists
+  for (i in 1:nrow(vennCounts)) {
+    
+    selectedContrasts <- colnames(vennCounts)[which(vennCounts[i, (1:4)] == 1)]
+    nonSelectedContrasts <- setdiff(colnames(decidedTests), selectedContrasts)
+    
+    filteredGenes <- decidedTests[
+      rowSums(abs(decidedTests[, selectedContrasts, drop = FALSE]) == 1) == length(selectedContrasts) &
+        rowSums(abs(decidedTests[, nonSelectedContrasts, drop = FALSE]) == 1) == 0, 
+    ]
+    
+    commonGenes <- rownames(filteredGenes)
+    commonGeneSymbols <- geneInfo[geneInfo$ensembl_gene_id %in% commonGenes, ]$gene_name
+    
+    if (i == 1) {
+      wb <- openxlsx::createWorkbook()
+      firstCharacters <- substr(selectedContrasts, 1, 1)
+      sheetName <- paste(firstCharacters, collapse = "_")
+      openxlsx::addWorksheet(wb, sheetName)
+      openxlsx::writeData(wb, sheetName, commonGeneSymbols, startCol = 1, startRow = 1)
+      openxlsx::saveWorkbook(wb, paste0(dirPath, "VennGeneList.xlsx"), overwrite = TRUE)
+    } else {
+      wb <- openxlsx::loadWorkbook(paste0(dirPath, "VennGeneList.xlsx"))
+      firstCharacters <- substr(selectedContrasts, 1, 1)
+      sheetName <- paste(firstCharacters, collapse = "_")
+      if (!(sheetName %in% names(wb))) {
+        openxlsx::addWorksheet(wb, sheetName)
+      }
+      openxlsx::writeData(wb, sheetName, commonGeneSymbols, startCol = 1, startRow = 1)
+      openxlsx::saveWorkbook(wb, paste0(dirPath, "VennGeneList.xlsx"), overwrite = TRUE)
+    }
+    
+  }
+  
+  # Color palette
+  baseColors <- c("red", "blue", "green")
+  custom_palette <- colorRampPalette(baseColors)
+  colors <- custom_palette(length(contrasts))
+  
+  # # Save Venn diagram image
+  # jpeg(filename = paste0(dirPath, "Venn.jpeg"), width = 1000, height = 900, quality = 100)
+  # vennDiagram(decidedTests,
+  #             lwd = 1,
+  #             circle.col = colors,
+  #             names = contrasts,
+  #             main = paste0("Venn diagram for various contrasts in ", tissueOfInterest, " tissue. Pval < 0.05")
+  # )
+  # dev.off()
+  
+  
+  # Save Venn diagram image
+  jpeg(filename = paste0(dirPath, "Venn.jpeg"), width = 1000, height = 800, quality = 100)
+  
+  
+  # Increase top margin to give room for big title
+  old_par <- par(mar = c(5, 5, 6, 5))  # bottom, left, top, right
+  
+  vennDiagram(decidedTests,
+              lwd = 1,
+              circle.col = colors,
+              names = contrasts,
+              cex = 2.0,         # Increase set label text size
+              cex.main = 1.5,    # Increase title size
+              main = paste0("Venn diagram for various contrasts in ", tissueOfInterest, " tissue. Pval < 0.05")
+  )
+  
+  par(old_par) # restore original margins
+  
+  dev.off()
+  
+  
+}
+
+
+
+
+
+
+
+
 
 #Version1 - Works fine but names not clearly visible
 # PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
@@ -1000,6 +1223,100 @@ PlotVolcano <- function(contrasts,tissueOfInterest,dirPath){
   
 }
 
+#Version2 - Corrected for unclear labels - Tested manually but not in loop
+PlotVolcanoIleum <- function(contrasts,tissueOfInterest,dirPath){
+  
+  for (contrast in contrasts) {
+    allGenes <- read.xlsx(paste0(dirPath,"AllGenes.xlsx"), sheet = contrast,rowNames = TRUE, colNames = TRUE)
+    #allGenes <- read.csv(paste0(dirPath,"/",contrast,"_AllGenes.csv"))
+    
+    sheetNames <- getSheetNames(paste0(dirPath,"SigGenes.xlsx"))
+    
+    
+    if(contrast %in% sheetNames){
+      
+      sigGenes <- read.xlsx(paste0(dirPath,"SigGenes.xlsx"), sheet = contrast, rowNames = TRUE)
+      
+      top10 <- head(sigGenes,n=10)
+      
+      #Volcano plot to visualize the results
+      volcanoPlot <- allGenes %>%
+        ggplot(aes(x = logFC,
+                   y = -log10(adj.P.Val),
+                   colour = isSignificant)) +
+        geom_vline(xintercept = 1, linetype = "dotted") +
+        geom_vline(xintercept = -1, linetype = "dotted") +
+        geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
+        geom_point(size = 1, alpha = 0.5) +
+        scale_colour_manual(values = c("grey", "red")) +
+        #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
+        geom_text_repel(data = top10 ,aes(label = GeneSymbol),size = 5) +
+        ggtitle(paste0("Volcano plot\n",contrast,", Thresholds: FDR<0.05, logFC>1")) +
+        guides(color = guide_legend(title = "IsSignificant")) +
+        theme(plot.title = element_text(hjust = 0.5,size = 15),
+              legend.title = element_text(size = 15),
+              legend.text = element_text(size = 15),
+              axis.title = element_text(size = 15),
+              axis.text = element_text(size = 10)
+        )
+      
+    }else{
+      
+      
+      top10 <- as.data.frame(matrix(ncol = ncol(allGenes),nrow = 0))
+      p <- 0.001
+      while (TRUE) {
+        
+        allGenes <- allGenes %>%
+          dplyr::mutate(isPValSignificant = case_when(
+            P.Value < p & abs(logFC) > 1 ~ TRUE,
+            TRUE ~ FALSE
+          ))
+        
+        sigGenes <- allGenes %>%
+          dplyr::filter(isPValSignificant == TRUE)
+        
+        top10 <- head(sigGenes,n=10)
+        
+        if(nrow(top10) > 0) break
+        
+        p <- p + 0.001
+        
+      }
+      
+      #Volcano plot to visualize the results
+      volcanoPlot <- allGenes %>%
+        ggplot(aes(x = logFC,
+                   y = -log10(P.Value),
+                   colour = isPValSignificant)) +
+        geom_vline(xintercept = 1, linetype = "dotted") +
+        geom_vline(xintercept = -1, linetype = "dotted") +
+        geom_hline(yintercept = -log10(p), linetype = "dotted") +
+        geom_point(size = 1, alpha = 0.5) +
+        scale_colour_manual(values = c("grey", "red")) +
+        #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
+        geom_text_repel(data = top10 ,aes(label = GeneSymbol), size = 5) +
+        ggtitle(paste0("Volcano plot\n",contrast,", Thresholds: Pval<",p,", logFC>1")) +
+        guides(color = guide_legend(title = "IsSignificant")) +
+        theme(plot.title = element_text(hjust = 0.5,size = 15),
+              legend.title = element_text(size = 15),
+              legend.text = element_text(size = 15),
+              axis.title = element_text(size = 15),
+              axis.text = element_text(size = 10))
+      
+    } 
+    
+    
+    
+    
+  }
+  
+  
+  
+  ggsave(paste0(dirPath,"VolcanoPlot.jpeg"), volcanoPlot, width =15 , height = 10,dpi = 600)
+  
+}
+
 PlotPValueHistogram <- function(contrasts,tissueOfInterest,dirPath){
   
   pValueHistogramList <- list()
@@ -1034,6 +1351,35 @@ PlotPValueHistogram <- function(contrasts,tissueOfInterest,dirPath){
   ggsave(paste0(dirPath,"pValueHistogram.jpeg"), pValueHistogramGrid, width = 20, height = 40,dpi = 600)
   
 }
+
+
+PlotPValueHistogramIleum <- function(contrasts,tissueOfInterest,dirPath){
+  
+  
+  for (contrast in contrasts) {
+    
+    allGenes <- read.xlsx(paste0(dirPath,"AllGenes.xlsx"), sheet = contrast,rowNames = TRUE, colNames = TRUE)
+    
+    pValueHistogramPlot <- ggplot(allGenes, aes(x = P.Value)) +
+      geom_histogram(binwidth = 0.05, color = "black", fill = "lightblue", alpha = 0.7) +
+      labs(
+        title = paste0("pValue histogram\n",contrast, " contrast."),
+        x = "P-Value",
+        y = "Frequency"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 30, face = "bold"),
+        axis.title = element_text(size = 30),
+        axis.text = element_text(size = 25)
+      )
+    
+  }
+  
+  ggsave(paste0(dirPath,"pValueHistogram.jpeg"), pValueHistogramPlot, width = 20, height = 20,dpi = 600)
+  
+}
+
 
 PlotMA <- function(contrasts,tissueOfInterest,dirPath){
   
@@ -1095,6 +1441,43 @@ PlotMA <- function(contrasts,tissueOfInterest,dirPath){
   ggsave(paste0(dirPath,"MAPlot.jpeg"), MAPlotGrid, width = 18, height = 18,dpi = 300)
   
 }
+
+PlotMAIleum <- function(contrasts,tissueOfInterest,dirPath){
+  
+  for (contrast in contrasts) {
+    allGenes <- read.xlsx(paste0(dirPath,"AllGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
+    #allGenes <- read.csv(paste0(dirPath,"/",contrast,"_AllGenes.csv"))
+    
+    
+    sheetNames <- getSheetNames(paste0(dirPath,"SigGenes.xlsx"))
+      
+      sigGenes <- read.xlsx(paste0(dirPath,"SigGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
+      
+      top10 <- head(sigGenes,n=10)
+      
+      #Volcano plot to visualize the results
+      MAPlot <- allGenes %>%
+        ggplot(aes(x = AveExpr,
+                   y = logFC,
+                   colour = isSignificant)) +
+        geom_hline(yintercept = 0, linetype = "dotted") +
+        geom_point(size = 1, alpha = 0.5) +
+        scale_colour_manual(values = c("grey", "red")) +
+        #geom_text(data = top10 ,aes(label = GeneSymbol),check_overlap = TRUE) +
+        geom_text_repel(data = top10 ,aes(label = GeneSymbol), size = 5) +
+        ggtitle(paste0("MA plot\n",contrast,", Thresholds: FDR<0.05, logFC>1")) +
+        theme(plot.title = element_text(hjust = 0.5))
+    
+    
+    
+    
+  }
+  
+  ggsave(paste0(dirPath,"MAPlot.jpeg"), MAPlot, width = 9, height = 9,dpi = 600)
+  
+}
+
+
 
 PlotHeatmaps <- function(ctsAll,contrasts,tissueOfInterest,dirPath){
   
@@ -1270,6 +1653,107 @@ PlotHeatmaps <- function(ctsAll,contrasts,tissueOfInterest,dirPath){
   }
   
 }
+
+
+PlotHeatmapsIleum <- function(ctsAll,contrasts,tissueOfInterest,dirPath){
+
+  for (contrast in contrasts) {
+    
+    cts <- ctsAll
+    sampleNames <- colnames(cts)
+    
+    II_SamplesCount <- length(grep(paste0("_II_"), sampleNames))
+    I_SamplesCount <- length(grep(paste0("_I_"), sampleNames))
+    
+    if(grepl("Control",contrast)){
+      sampleGroups <- factor(c(rep("Ileum Interposition",II_SamplesCount),
+                               rep("Ileum Control",I_SamplesCount)
+      ))
+      
+      groupColors <- c("Ileum Interposition" = "blue",
+                       "Ileum Control" = "red"
+      )
+    }else{
+      sampleGroups <- factor(c(rep("Ileum Interposition",II_SamplesCount),
+                               rep("Ileum Surgery",I_SamplesCount)
+      ))
+      
+      groupColors <- c("Ileum Interposition" = "blue",
+                       "Ileum Surgery" = "red"
+      )
+    }
+    
+    
+    
+    desiredOrder <- c("_II_","_I_")
+    
+    sheetNames <- getSheetNames(paste0(dirPath,"SigGenes.xlsx"))
+    
+    if(!contrast %in% sheetNames) next
+    
+    sigDEresults <- read.xlsx(paste0(dirPath,"SigGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
+    
+    sigDEresults <- head(sigDEresults[order(sigDEresults$adj.P.Val),],n=50)
+    
+    for (i in 1:nrow(sigDEresults)) {
+      
+      if(!nzchar(sigDEresults$GeneSymbol[i])) sigDEresults$GeneSymbol[i] <- sigDEresults$EnsemblID[i]
+      
+    }
+    
+    sigGenes <- sigDEresults$EnsemblID
+    
+    sigGeneExpressionData <- cts[rownames(cts) %in% sigGenes,]
+    
+    sampleNames <- colnames(sigGeneExpressionData)
+    
+    orderSamples <- unlist(lapply(desiredOrder, function(prefix) {
+      sampleNames[grep(paste0(prefix), sampleNames)]
+    }))
+    
+    sigGeneExpressionData <- sigGeneExpressionData[,orderSamples]
+    
+    rownames(sigGeneExpressionData) <- sigDEresults$GeneSymbol
+    
+    scaledSigExpData <- t(scale(t(sigGeneExpressionData)))
+    
+    topAnnotation <- HeatmapAnnotation(
+      Group = sampleGroups,
+      col = list(Group = groupColors),
+      annotation_legend_param = list(
+        Group = list(
+          title_gp = gpar(fontsize = 16, fontface = "bold"),  # legend title
+          labels_gp = gpar(fontsize = 14)                     # legend labels
+        )
+    ))
+    
+    jpeg(paste0(dirPath,contrast,"_TopHeatMap.jpeg"), width = 1200, height = 1000,quality = 100)
+    
+    topHeatmap <- Heatmap(scaledSigExpData,
+                          name = "Expression",
+                          row_names_side = "left",
+                          column_names_side = "top",
+                          clustering_distance_rows = "euclidean",
+                          cluster_columns = FALSE,
+                          top_annotation = topAnnotation,
+                          column_title = paste0("Heatmap of significant genes (FDR<0.05) for ",contrast," contrast."),
+                          column_title_gp = gpar(fontsize = 20, fontface = "bold"),
+                          heatmap_legend_param = list(
+                            title_gp = gpar(fontsize = 16, fontface = "bold"),  # legend title font
+                            labels_gp = gpar(fontsize = 14)                     # legend labels font
+                          )
+    )
+    
+    print(topHeatmap)
+    
+    dev.off()
+    
+    
+    
+  }
+  
+}
+
 
 SummarizeDEGenesFDR <- function(tissues,fdr,logFC){
   
