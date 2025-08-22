@@ -103,7 +103,7 @@ ConvertToSymbolMain <- function(ensemblIds, geneInfo) {
 
 ConvertSymbolsToEnsembl <- function(symbols) {
   mapping <- AnnotationDbi::select(
-    org.Hs.eg.db,
+    org.Mm.eg.db,
     keys = symbols,
     columns = c("ENSEMBL"),
     keytype = "SYMBOL"

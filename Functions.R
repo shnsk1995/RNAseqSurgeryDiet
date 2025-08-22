@@ -2876,3 +2876,65 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
   dev.off()
   
 }
+
+
+VisualizeMatches <- function(pathwayList, sheetNames, outFileName, topN = NULL) {
+  
+  # Prepare data frame for plotting
+  matchData <- data.frame()
+  
+  for (j in seq_along(sheetNames)) {
+    for (i in seq_along(pathwayList)) {
+      # Skip self-comparison
+      if (names(pathwayList[i]) == sheetNames[j]) next
+      
+      overlap <- intersect(pathwayList[[i]], pathwayList[[sheetNames[j]]])
+      overlap <- na.omit(overlap)
+      if (length(overlap) > 0) {
+        matchData <- rbind(matchData,
+                           data.frame(
+                             Pathway = names(pathwayList[i]),
+                             Reference = sheetNames[j],
+                             Matches = length(overlap)
+                           ))
+      }
+    }
+  }
+  
+  # Optional: keep only top N pathways by total matches
+  if(!is.null(topN)) {
+    topPathways <- matchData %>%
+      group_by(Pathway) %>%
+      summarise(Total = sum(Matches)) %>%
+      arrange(desc(Total)) %>%
+      slice_head(n = topN)
+    
+    matchData <- matchData %>% filter(Pathway %in% topPathways$Pathway)
+  }
+  
+  # Convert Matches to factor for discrete scale
+  #matchData$MatchesFactor <- factor(matchData$Matches, levels = sort(unique(matchData$Matches)))
+  
+  # Plot heatmap with discrete scale and text labels
+  p <- ggplot(matchData, aes(x = Reference, y = Pathway, fill = Matches)) +
+    geom_tile(color = "black") +
+    geom_text(aes(label = Matches), size = 5) +
+    scale_fill_gradient(low = "white", high = "steelblue") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+      axis.text.y = element_text(size = 14),
+      axis.title = element_text(size = 16),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      plot.title = element_text(size = 16, hjust = 0.5)
+    ) +
+    labs(fill = "Number of Common genes", x = "Custom pathways", y = "Pathways in Database")+
+    ggtitle("Common genes in custom and database pathways")
+  
+  # Save using ggsave
+  dir.create(dirname(outFileName), recursive = TRUE, showWarnings = FALSE)
+  ggsave(outFileName, plot = p, width = 12, height = 14, dpi = 300)
+  
+  return(matchData)
+}

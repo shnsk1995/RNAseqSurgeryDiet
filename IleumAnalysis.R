@@ -594,7 +594,7 @@ tissueOfInterest <- "Ileum interposition Vs Control"
     
     v1 <- read.xlsx(wb, sheet = sheetNames[i])
     v1 <- v1$Gene
-    v1 <- ConvertSymbolsToEnsembl(toupper(v1))
+    v1 <- ConvertSymbolsToEnsembl((v1))
     wikiPathways[sheetNames[i]] <- list(v1)
     hallMarkPathways[sheetNames[i]] <- list(v1)
     
@@ -614,46 +614,57 @@ tissueOfInterest <- "Ileum interposition Vs Control"
   GenerateBarPlotsForPathwaysIleum("Ileum_interposition_Control", pathwaysListNames = pathwaysListNames, contrasts = "Ileum_interposition_Control")
   
   
-  outFile <- "data/HallmarkMatches.txt"
-  messages <- c()
+ #  outFile <- "data/HallmarkMatches.txt"
+ #  messages <- c()
+ #  
+ #  for (j in 1:length(sheetNames)) {
+ #    for (i in 1:50) {
+ #      overlap <- intersect(hallMarkPathways[[i]], hallMarkPathways[[sheetNames[j]]])
+ #      overlap <- na.omit(overlap)
+ #      if (length(overlap) > 0) {
+ #        msg <- paste0(
+ #          names(hallMarkPathways[i]), 
+ #          " has ", 
+ #          length(overlap),
+ #          " matches with ",
+ #          sheetNames[j]
+ #        )
+ #        messages <- c(messages, msg)
+ #      }
+ #    }
+ #  }
+ #  
+ #  if(!is.null(messages)) writeLines(messages, outFile)
+ #  
+ #  
+ #  outFile <- "data/WikiMatches.txt"
+ #  messages <- c()
+ #  
+ #  for (j in 1:length(sheetNames)) {
+ #    for (i in 1:202) {
+ #      overlap <- intersect(wikiPathways[[i]], wikiPathways[[sheetNames[j]]])
+ #      overlap <- na.omit(overlap)
+ #      if (length(overlap) > 0) {
+ #        msg <- paste0(
+ #          names(wikiPathways[i]), 
+ #          " has ", 
+ #          length(overlap),
+ #          " matches with ",
+ #          sheetNames[j]
+ #        )
+ #        messages <- c(messages, msg)
+ #      }
+ #    }
+ #  }
+ #  
+ # if(!is.null(messages)) writeLines(messages, outFile)
+ #  
   
-  for (j in 1:length(sheetNames)) {
-    for (i in 1:50) {
-      overlap <- intersect(hallMarkPathways[[i]], hallMarkPathways[[sheetNames[j]]])
-      if (length(overlap) > 0) {
-        msg <- paste0(
-          names(hallMarkPathways[i]), 
-          " has ", 
-          length(overlap),
-          " matches with ",
-          sheetNames[j]
-        )
-        messages <- c(messages, msg)
-      }
-    }
-  }
-  
-  writeLines(messages, outFile)
   
   
-  outFile <- "data/WikiMatches.txt"
-  messages <- c()
+  # For Hallmark pathways
+  VisualizeMatches(hallMarkPathways, sheetNames, "data/HallmarkMatches.jpeg", topN = 50)
   
-  for (j in 1:length(sheetNames)) {
-    for (i in 1:202) {
-      overlap <- intersect(wikiPathways[[i]], wikiPathways[[sheetNames[j]]])
-      if (length(overlap) > 0) {
-        msg <- paste0(
-          names(wikiPathways[i]), 
-          " has ", 
-          length(overlap),
-          " matches with ",
-          sheetNames[j]
-        )
-        messages <- c(messages, msg)
-      }
-    }
-  }
-  
-  writeLines(messages, outFile)
+  # For Wiki pathways
+  VisualizeMatches(wikiPathways, sheetNames, "data/WikiMatches.jpeg", topN = 50)
   
