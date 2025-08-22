@@ -2323,6 +2323,58 @@ GenerateBarPlotsForPathways <- function(tissueOfInterest,pathwaysListNames,contr
   
 }
 
+GenerateBarPlotsForPathwaysIleum <- function(tissueOfInterest,pathwaysListNames,contrasts){
+  
+  
+  for (tissue in tissueOfInterest) {
+    
+    #Use this before appending files
+    wb <- loadWorkbook(paste0("data/FGSEAResults/",tissue,"/AllPathways.xlsx"))
+    
+    #Use this after appending files
+    #wb <- loadWorkbook(paste0("data/FGSEAResults/",tissue,"/",tissue,".xlsx"))
+    
+    for (pathwaysList in pathwaysListNames) {
+      
+      
+      
+      for (contrast in contrasts) {
+        
+        sheetName <- paste0(pathwaysList)
+        
+        sheet <- read.xlsx(wb,sheet = sheetName)
+        
+        sheet <- sheet[sheet$padj<0.05,]
+        
+        outputFile <- paste0("data/FGSEAResults/",tissue,"/",pathwaysList,"_Plots/",pathwaysList,"_",contrast,"_BarPlot.jpeg")
+        
+        plot <- ggplot(sheet, aes(x = reorder(pathway,NES), y = NES, fill = padj)) +
+          geom_bar(stat = "identity", position = "stack") +
+          scale_fill_gradient(low = "blue", high = "red", name = "padj",transform = "reverse") +
+          coord_flip() + 
+          labs(title = paste0("Up- and Down-Regulated Pathways, FDR < 0.05 \n",contrast," contrast"), x = "Pathway", y = "NES") +
+          theme_minimal() +
+          theme(legend.position = "right",
+                plot.title = element_text(hjust = 0.5,size = 15),
+                axis.title.x = element_text(size = 15),
+                axis.title.y = element_text(size = 15),
+                axis.text.y = element_text(size = 15,colour = "black",),
+                legend.text = element_text(size = 15),
+                legend.title = element_text(size = 15))
+        
+        
+        ggsave(filename = outputFile,height = 10, width = 12,  dpi = 600)
+        
+      }
+      
+    }
+    
+  }
+  
+  
+  
+}
+
 GenerateSignificanceHeatmapForPathways <- function(tissueOfInterest,pathwaysListNames){
   
   

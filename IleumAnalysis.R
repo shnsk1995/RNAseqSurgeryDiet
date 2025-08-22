@@ -582,3 +582,78 @@ tissueOfInterest <- "Ileum interposition Vs Control"
   PlotHeatmapsIleum(logCPM,colnames(contrasts),tissueOfInterest,dirPath)
   
   
+  
+  #######################################Pathway analysis for all contrasts#####################################################
+  hallMarkPathways <- CreateMouseGenomeHallMarkEnsemblPathways()
+  wikiPathways <- CreateMouseGenomeWikiEnsemblPathways()
+  
+  wb <- loadWorkbook("data/Bile\ Acid\ Genes_Sujoy.xlsx")
+  sheetNames <- sheets(wb)
+  
+  for(i in 1:length(sheetNames)){
+    
+    v1 <- read.xlsx(wb, sheet = sheetNames[i])
+    v1 <- v1$Gene
+    v1 <- ConvertSymbolsToEnsembl(toupper(v1))
+    wikiPathways[sheetNames[i]] <- list(v1)
+    hallMarkPathways[sheetNames[i]] <- list(v1)
+    
+  }
+  
+  pathwaysList <- list(hallMarkPathways,wikiPathways)
+  pathwaysListNames <- c("HallMark","Wiki")
+  
+  DoFGSEAForAllGenesIleum("Ileum_interposition_Surgery",pathways = pathwaysList,pathwayNames = pathwaysListNames)
+  DoFGSEAForAllGenesIleum("Ileum_interposition_Control",pathways = pathwaysList,pathwayNames = pathwaysListNames)
+  
+  SaveAndPlotTopPathwaysIleum("Ileum_interposition_Surgery",pathways = pathwaysList,pathwayNames = pathwaysListNames)
+  SaveAndPlotTopPathwaysIleum("Ileum_interposition_Control",pathways = pathwaysList,pathwayNames = pathwaysListNames)
+  
+  
+  GenerateBarPlotsForPathwaysIleum("Ileum_interposition_Surgery", pathwaysListNames = pathwaysListNames, contrasts = "Ileum_interposition_Surgery")
+  GenerateBarPlotsForPathwaysIleum("Ileum_interposition_Control", pathwaysListNames = pathwaysListNames, contrasts = "Ileum_interposition_Control")
+  
+  
+  outFile <- "data/HallmarkMatches.txt"
+  messages <- c()
+  
+  for (j in 1:length(sheetNames)) {
+    for (i in 1:50) {
+      overlap <- intersect(hallMarkPathways[[i]], hallMarkPathways[[sheetNames[j]]])
+      if (length(overlap) > 0) {
+        msg <- paste0(
+          names(hallMarkPathways[i]), 
+          " has ", 
+          length(overlap),
+          " matches with ",
+          sheetNames[j]
+        )
+        messages <- c(messages, msg)
+      }
+    }
+  }
+  
+  writeLines(messages, outFile)
+  
+  
+  outFile <- "data/WikiMatches.txt"
+  messages <- c()
+  
+  for (j in 1:length(sheetNames)) {
+    for (i in 1:202) {
+      overlap <- intersect(wikiPathways[[i]], wikiPathways[[sheetNames[j]]])
+      if (length(overlap) > 0) {
+        msg <- paste0(
+          names(wikiPathways[i]), 
+          " has ", 
+          length(overlap),
+          " matches with ",
+          sheetNames[j]
+        )
+        messages <- c(messages, msg)
+      }
+    }
+  }
+  
+  writeLines(messages, outFile)
+  

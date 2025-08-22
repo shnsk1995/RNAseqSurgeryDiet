@@ -100,6 +100,20 @@ ConvertToSymbolMain <- function(ensemblIds, geneInfo) {
   return(paste(symbols, collapse = ","))
 }
 
+
+ConvertSymbolsToEnsembl <- function(symbols) {
+  mapping <- AnnotationDbi::select(
+    org.Hs.eg.db,
+    keys = symbols,
+    columns = c("ENSEMBL"),
+    keytype = "SYMBOL"
+  )
+  
+  # Ensure output is in the same order as input
+  ens_ids <- mapping$ENSEMBL[match(symbols, mapping$SYMBOL)]
+  return(ens_ids)
+}
+
 ConvertEnsemblToSymbol <- function(tissueOfInterest,geneInfo){
   
   for (tissue in tissueOfInterest) {
@@ -147,8 +161,6 @@ ConvertEnsemblToSymbol <- function(tissueOfInterest,geneInfo){
 }
 
 DoFGSEAForAllGenes <- function(tissue,pathways=list(),pathwayNames=c()){
-  
-  
   
   if(!dir.exists("data/FGSEAResults/")){
     dir.create("data/FGSEAResults/")
@@ -230,6 +242,96 @@ DoFGSEAForAllGenes <- function(tissue,pathways=list(),pathwayNames=c()){
   }
   
 }
+
+
+
+
+DoFGSEAForAllGenesIleum <- function(tissue,pathways=list(),pathwayNames=c()){
+
+  
+  if(!dir.exists("data/FGSEAResults/")){
+    dir.create("data/FGSEAResults/")
+  }
+  
+  readDirPath <- paste0("data/LimmaResults/",tissue,"/")
+  writeDirPath <- paste0("data/FGSEAResults/",tissue,"/")
+  
+  if(!dir.exists(writeDirPath)){
+    dir.create(writeDirPath)
+  }
+  
+  contrasts <- readLines(paste0(readDirPath,"ContrastsUsed.txt"))
+  
+  for (i in 1:length(contrasts)) {
+    
+    contrasts[i] <- sub(" =.*","",contrasts[i])
+    
+  }
+  
+  for (i in 1:length(pathwayNames)) {
+    
+    for (contrast in contrasts) {
+      
+      allGenes <- read.xlsx(paste0(readDirPath,"AllGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
+      
+      allGenes <- allGenes %>%
+        arrange(desc(logFC))
+      
+      generanks <- setNames(
+        allGenes$logFC,
+        allGenes$EnsemblID      
+      )
+      
+      fgseaRes <- fgsea(pathways[[i]], generanks, minSize=15, maxSize=250)
+      
+      #Save FGSEA results
+      #fwrite(fgseaRes, file=paste0(dirPath,pathwayNames[i],"_",contrast,"_FGSEAResults.txt"), sep="\t", sep2=c("", " ", ""))
+      file <- paste0(writeDirPath,"/AllPathways.xlsx")
+      
+      if (file.exists(file)) {
+        # Load the existing workbook
+        wb <- loadWorkbook(file)
+        
+        sheetName <- paste0(pathwayNames[i])
+        
+        # Add a new sheet (check if the sheet already exists first)
+        if (!(sheetName %in% names(wb))) {
+          addWorksheet(wb, sheetName)
+        }
+        
+        # Optionally, write some data to the new sheet
+        writeData(wb, sheetName,fgseaRes, startCol = 1, startRow = 1)
+        
+        # Save the workbook
+        saveWorkbook(wb, file, overwrite = TRUE)
+        
+      } else {
+        
+        # Create a new workbook if the file doesn't exist
+        wb <- createWorkbook()
+        
+        
+        # Add a new sheet
+        sheetName <- paste0(pathwayNames[i])
+        addWorksheet(wb, sheetName)
+        
+        # Optionally, write some data to the new sheet
+        writeData(wb, sheetName,fgseaRes, startCol = 1, startRow = 1)
+        
+        # Save the new workbook
+        saveWorkbook(wb, file, overwrite = TRUE)
+      }
+      
+      
+    }
+    
+    
+  }
+  
+}
+
+
+
 
 SaveAndPlotTopPathways <- function(tissue,pathways=list(),pathwayNames=c()){
   
@@ -418,6 +520,201 @@ SaveAndPlotTopPathways <- function(tissue,pathways=list(),pathwayNames=c()){
   
   
 }
+
+
+
+
+SaveAndPlotTopPathwaysIleum <- function(tissue,pathways=list(),pathwayNames=c()){
+  
+  
+  readDirPath <- paste0("data/LimmaResults/",tissue,"/")
+  writeDirPath <- paste0("data/FGSEAResults/",tissue,"/")
+  
+  contrasts <- readLines(paste0(readDirPath,"ContrastsUsed.txt"))
+  
+  for (i in 1:length(contrasts)) {
+    
+    contrasts[i] <- sub(" =.*","",contrasts[i])
+    
+  }
+  
+  for (i in 1:length(pathwayNames)) {
+    
+    plotsPath <- paste0(writeDirPath,"/",pathwayNames[i],"_Plots/")
+    
+    if(!dir.exists(plotsPath)) dir.create(plotsPath)
+    
+    for (contrast in contrasts) {
+      
+      allGenes <- read.xlsx(paste0(readDirPath,"AllGenes.xlsx"), sheet = contrast, rowNames = TRUE, colNames = TRUE)
+      
+      allGenes <- allGenes %>%
+        arrange(desc(logFC))
+      
+      generanks <- setNames(
+        allGenes$logFC,
+        allGenes$EnsemblID      
+      )
+      
+      sheetName <- paste0(pathwayNames[i])
+      
+      fgseaRes <- read.xlsx(paste0(writeDirPath,"AllPathways.xlsx"), sheet = sheetName, colNames = TRUE)
+      fgseaRes <- as.data.table(fgseaRes)
+      #fgseaRes <- fread(paste0(dirPath,pathwayNames[i],"_",contrast,"_FGSEAResults.txt"), sep = "\t")
+      
+      ##############################Top Pathways - Commented as not required to be shared with collborators
+      # topPathwaysUp <- fgseaRes[ES > 0][head(order(pval), n=10), pathway]
+      # topPathwaysDown <- fgseaRes[ES < 0][head(order(pval), n=10), pathway]
+      # topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+      # 
+      # jpeg(filename = paste0(plotsPath,pathwayNames[i],"_",contrast,"_TopPathways.jpeg"),height = 1200 , width = 1000,quality = 100)
+      # 
+      # 
+      # gSEATable <- plotGseaTable(pathways[[i]][topPathways], generanks, fgseaRes,
+      #                            gseaParam=0.5)
+      # 
+      # 
+      # print(gSEATable)
+      # 
+      # dev.off()
+      
+      ####################Main Pathways - Commented as not required to be shared with collaborator
+      # collapsedPathways <- collapsePathways(fgseaRes[order(pval)][padj < 0.01],
+      #                                       pathways[[i]], generanks)
+      # 
+      # mainPathways <- fgseaRes[pathway %in% collapsedPathways$mainPathways][
+      #   order(-NES), pathway]
+      # 
+      # jpeg(filename = paste0(plotsPath,pathwayNames[i],"_",contrast,"_MainPathways.jpeg"),height = 1200 , width = 1000,quality = 100)
+      # 
+      # gSEATable <- plotGseaTable(pathways[[i]][mainPathways], generanks, fgseaRes,
+      #                            gseaParam = 0.5)
+      # 
+      # print(gSEATable)
+      # 
+      # dev.off()
+      
+      ############################################Main Pathways file - Commented as not required to be shared with collaborator
+      # fgseaResMain <- fgseaRes[match(mainPathways, pathway)]
+      # 
+      # fgseaResMain[, leadingEdge := strsplit(leadingEdge, split = " ")]
+      # 
+      # # fgseaResMain[, leadingEdge := mapIdsList(
+      # #   x=org.Mm.eg.db,
+      # #   keys=leadingEdge,
+      # #   keytype="ENSEMBL",
+      # #   column="SYMBOL")]
+      # 
+      # 
+      # #fwrite(fgseaResMain, file=paste0(dirPath,pathwayNames[i],"_",contrast,"_FGSEAResMain.txt"), sep="\t", sep2=c("", " ", ""))
+      # 
+      # #Save FGSEA results
+      # #fwrite(fgseaRes, file=paste0(dirPath,pathwayNames[i],"_",contrast,"_FGSEAResults.txt"), sep="\t", sep2=c("", " ", ""))
+      # file <- paste0(writeDirPath,"/MainPathways.xlsx")
+      # 
+      # if (file.exists(file)) {
+      #   # Load the existing workbook
+      #   wb <- loadWorkbook(file)
+      #   
+      #   
+      #   sheetName <- paste0(pathwayNames[i],"_",contrast)
+      #   # Add a new sheet (check if the sheet already exists first)
+      #   if (!(sheetName %in% names(wb))) {
+      #     addWorksheet(wb, sheetName)
+      #   }
+      #   
+      #   # Optionally, write some data to the new sheet
+      #   writeData(wb, sheetName,fgseaResMain, startCol = 1, startRow = 1)
+      #   
+      #   # Save the workbook
+      #   saveWorkbook(wb, file, overwrite = TRUE)
+      #   
+      # } else {
+      #   
+      #   # Create a new workbook if the file doesn't exist
+      #   wb <- createWorkbook()
+      #   
+      #   # Add a new sheet
+      #   sheetName <- paste0(pathwayNames[i],"_",contrast)
+      #   addWorksheet(wb, sheetName)
+      #   
+      #   # Optionally, write some data to the new sheet
+      #   writeData(wb, sheetName,fgseaResMain, startCol = 1, startRow = 1)
+      #   
+      #   # Save the new workbook
+      #   saveWorkbook(wb, file, overwrite = TRUE)
+      # }
+      
+      
+      #Enrichment plots for top hits
+      topHits <- fgseaRes[padj<0.05][order(padj), pathway]
+      
+      rl <- generanks
+      setList <- pathways[[i]][topHits]
+      gsea <- fgsea::fgsea(setList, rl, nperm=1000)
+      
+      #generate data for enrichment plots
+      dataForEnrichPlots <- gseaCurve(rl,setList,gsea)
+      
+      
+      
+      if(length(topHits)<5){
+        #Generate pathway image
+        enrichmentPlot <- ggplot2::ggplot() +
+          geom_gsea(
+            dataForEnrichPlots,
+            linecolor = "purple",
+            zeroline = TRUE,
+            linesize = 1,
+            ncol = 5,
+            labelsize = 5
+          ) +
+          ggtitle(paste0("Enrichment plot for top hits(padj < 0.05) \n",contrast," Contrast\n",pathwayNames[i]," pathways database"))+
+          theme(plot.title = element_text(hjust = 0.5,size = 15),
+                axis.title.x = element_text(size = 15),
+                axis.title.y = element_text(size = 15)) +
+          theme_gsea(textsize = 17)
+      }else{
+        #Generate pathway image
+        enrichmentPlot <- ggplot2::ggplot() +
+          geom_gsea(
+            dataForEnrichPlots,
+            linecolor = "purple",
+            zeroline = TRUE,
+            linesize = 1,
+            ncol = 5,
+            labelsize = 5
+          ) +
+          ggtitle(paste0("Enrichment plot for top hits(padj < 0.05) for ",contrast," Contrast, ",pathwayNames[i]," pathways database"))+
+          theme(plot.title = element_text(hjust = 0.5,size = 15),
+                axis.title.x = element_text(size = 15),
+                axis.title.y = element_text(size = 15)) +
+          theme_gsea(textsize = 17)
+      }
+      
+      
+      plotHeight <- ceiling(length(topHits)/5) * 4
+      if(plotHeight==4){
+        plotWidth <- 4 * length(topHits)
+      }else{
+        plotWidth <- 20
+      }
+      
+      ggsave(paste0(plotsPath,pathwayNames[i],"_",contrast,"_EnrichmentPlots.jpeg"),width = plotWidth ,height = plotHeight ,dpi=600)
+      #ggsave(paste0(plotsPath,pathwayNames[i],"_",contrast,"_EnrichmentPlots.pdf"), width=12, height=12)
+      
+    }
+    
+    
+  }
+  
+  
+  
+}
+
+
+
+
 
 VennForPathways <- function(tissueOfInterest,pathways,pathwayNames){
   
