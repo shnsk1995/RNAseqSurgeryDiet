@@ -593,7 +593,7 @@ tissueOfInterest <- "Ileum interposition Vs Control"
   for(i in 1:length(sheetNames)){
     
     v1 <- read.xlsx(wb, sheet = sheetNames[i])
-    v1 <- v1$Gene
+    v1 <- unique(v1$Gene)
     v1 <- ConvertSymbolsToEnsembl((v1))
     wikiPathways[sheetNames[i]] <- list(v1)
     hallMarkPathways[sheetNames[i]] <- list(v1)
@@ -667,4 +667,7 @@ tissueOfInterest <- "Ileum interposition Vs Control"
   
   # For Wiki pathways
   VisualizeMatches(wikiPathways, sheetNames, "data/WikiMatches.jpeg", topN = 50)
+  
+  #Intersection Among custom Pathways
+  IntersectionAmongCustomPathways()
   

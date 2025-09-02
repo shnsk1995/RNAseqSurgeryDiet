@@ -2878,6 +2878,68 @@ DoComprehensiveGeneAbundanceAnalysis <- function(tissueOfInterest){
 }
 
 
+# VisualizeMatches <- function(pathwayList, sheetNames, outFileName, topN = NULL) {
+#   
+#   # Prepare data frame for plotting
+#   matchData <- data.frame()
+#   
+#   for (j in seq_along(sheetNames)) {
+#     for (i in seq_along(pathwayList)) {
+#       # Skip self-comparison
+#       if (names(pathwayList[i]) == sheetNames[j]) next
+#       
+#       overlap <- intersect(pathwayList[[i]], pathwayList[[sheetNames[j]]])
+#       overlap <- na.omit(overlap)
+#       if (length(overlap) > 0) {
+#         matchData <- rbind(matchData,
+#                            data.frame(
+#                              Pathway = names(pathwayList[i]),
+#                              Reference = sheetNames[j],
+#                              Matches = length(overlap)
+#                            ))
+#       }
+#     }
+#   }
+#   
+#   # Optional: keep only top N pathways by total matches
+#   if(!is.null(topN)) {
+#     topPathways <- matchData %>%
+#       group_by(Pathway) %>%
+#       summarise(Total = sum(Matches)) %>%
+#       arrange(desc(Total)) %>%
+#       slice_head(n = topN)
+#     
+#     matchData <- matchData %>% filter(Pathway %in% topPathways$Pathway)
+#   }
+#   
+#   # Convert Matches to factor for discrete scale
+#   #matchData$MatchesFactor <- factor(matchData$Matches, levels = sort(unique(matchData$Matches)))
+#   
+#   # Plot heatmap with discrete scale and text labels
+#   p <- ggplot(matchData, aes(x = Reference, y = Pathway, fill = Matches)) +
+#     geom_tile(color = "black") +
+#     geom_text(aes(label = Matches), size = 5) +
+#     scale_fill_gradient(low = "white", high = "steelblue") +
+#     theme_minimal() +
+#     theme(
+#       axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+#       axis.text.y = element_text(size = 14),
+#       axis.title = element_text(size = 16),
+#       legend.title = element_text(size = 14),
+#       legend.text = element_text(size = 12),
+#       plot.title = element_text(size = 16, hjust = 0.5)
+#     ) +
+#     labs(fill = "Number of Common genes", x = "Custom pathways", y = "Pathways in Database")+
+#     ggtitle("Common genes in custom and database pathways")
+#   
+#   # Save using ggsave
+#   dir.create(dirname(outFileName), recursive = TRUE, showWarnings = FALSE)
+#   ggsave(outFileName, plot = p, width = 12, height = 14, dpi = 300)
+#   
+#   return(matchData)
+# }
+
+
 VisualizeMatches <- function(pathwayList, sheetNames, outFileName, topN = NULL) {
   
   # Prepare data frame for plotting
@@ -2890,35 +2952,38 @@ VisualizeMatches <- function(pathwayList, sheetNames, outFileName, topN = NULL) 
       
       overlap <- intersect(pathwayList[[i]], pathwayList[[sheetNames[j]]])
       overlap <- na.omit(overlap)
+      
       if (length(overlap) > 0) {
+        pct <- (length(overlap) / length(pathwayList[[i]])) * 100  # percentage overlap
+        
         matchData <- rbind(matchData,
                            data.frame(
                              Pathway = names(pathwayList[i]),
                              Reference = sheetNames[j],
-                             Matches = length(overlap)
+                             Percent = pct
                            ))
       }
     }
   }
   
-  # Optional: keep only top N pathways by total matches
-  if(!is.null(topN)) {
+  # Optional: keep only top N pathways by total overlap (percentage-based sum)
+  if (!is.null(topN)) {
     topPathways <- matchData %>%
       group_by(Pathway) %>%
-      summarise(Total = sum(Matches)) %>%
+      summarise(Total = sum(Percent)) %>%
       arrange(desc(Total)) %>%
       slice_head(n = topN)
     
     matchData <- matchData %>% filter(Pathway %in% topPathways$Pathway)
   }
   
-  # Convert Matches to factor for discrete scale
-  #matchData$MatchesFactor <- factor(matchData$Matches, levels = sort(unique(matchData$Matches)))
+  # Remove from Y-axis any pathways that also appear in sheetNames (X-axis)
+  matchData <- matchData %>% filter(!(Pathway %in% sheetNames))
   
-  # Plot heatmap with discrete scale and text labels
-  p <- ggplot(matchData, aes(x = Reference, y = Pathway, fill = Matches)) +
+  # Plot heatmap with percentages
+  p <- ggplot(matchData, aes(x = Reference, y = Pathway, fill = Percent)) +
     geom_tile(color = "black") +
-    geom_text(aes(label = Matches), size = 5) +
+    geom_text(aes(label = sprintf("%.1f%%", Percent)), size = 5) +
     scale_fill_gradient(low = "white", high = "steelblue") +
     theme_minimal() +
     theme(
@@ -2929,12 +2994,71 @@ VisualizeMatches <- function(pathwayList, sheetNames, outFileName, topN = NULL) 
       legend.text = element_text(size = 12),
       plot.title = element_text(size = 16, hjust = 0.5)
     ) +
-    labs(fill = "Number of Common genes", x = "Custom pathways", y = "Pathways in Database")+
-    ggtitle("Common genes in custom and database pathways")
+    labs(fill = "Overlap (%)", x = "Custom pathways", y = "Pathways in Database") +
+    ggtitle("Percentage overlap of common genes between custom and database pathways")
   
-  # Save using ggsave
+  # Save plot
   dir.create(dirname(outFileName), recursive = TRUE, showWarnings = FALSE)
-  ggsave(outFileName, plot = p, width = 12, height = 14, dpi = 300)
+  ggsave(outFileName, plot = p, width = 14, height = 14, dpi = 300)
   
   return(matchData)
+}
+
+IntersectionAmongCustomPathways <- function(){
+  
+  wb <- loadWorkbook("data/Bile Acid Genes_Sujoy.xlsx")
+  sheetNames <- sheets(wb)
+  
+  a <- unique(as.data.frame(read.xlsx(wb, sheet = sheetNames[1]))$Gene)
+  b <- unique(as.data.frame(read.xlsx(wb, sheet = sheetNames[2]))$Gene)
+  c <- unique(as.data.frame(read.xlsx(wb, sheet = sheetNames[3]))$Gene)
+  d <- unique(as.data.frame(read.xlsx(wb, sheet = sheetNames[4]))$Gene)
+  e <- unique(as.data.frame(read.xlsx(wb, sheet = sheetNames[5]))$Gene)
+  
+  # Put them in a named list
+  pathwayList <- list(
+    "Entero_Hepatic_Circulation_Mouse" = a,
+    "Major_Glucose_Transport_Genes"   = b,
+    "Bile_Transport_Genes_Mouse"      = c,
+    "Entero_Endocrine_Circulation_Mouse" = d,
+    "MBS_GLP1_Mouse_Chart"            = e
+  )
+  
+  # Create pairwise intersection matrix (percentage based on Y-axis set size)
+  n <- length(pathwayList)
+  intersect_matrix <- matrix(0, nrow = n, ncol = n,
+                             dimnames = list(names(pathwayList), names(pathwayList)))
+  
+  
+  for (i in 1:n) {
+    for (j in 1:n) {
+      overlap <- length(intersect(pathwayList[[i]], pathwayList[[j]]))
+      base_size <- length(pathwayList[[i]])  # denominator = Y-axis set
+      if (base_size > 0) {
+        intersect_matrix[i, j] <- (overlap / base_size) * 100
+      }
+    }
+  }
+  
+  # Convert to tidy format for ggplot
+  intersect_df <- as.data.frame(as.table(intersect_matrix))
+  
+  # Heatmap plot (with percentage labels)
+  g <- ggplot(intersect_df, aes(x = Var2, y = Var1, fill = Freq)) +
+    geom_tile(color = "black") +
+    geom_text(aes(label = sprintf("%.1f%%", Freq)), size = 5) +
+    scale_fill_gradient(low = "white", high = "steelblue") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+      axis.text.y = element_text(size = 14),
+      axis.title = element_text(size = 16),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      plot.title = element_text(size = 16, hjust = 0.5)
+    ) +
+    labs(fill = "Overlap (%)", x = "Gene sets", y = "Gene sets") +
+    ggtitle("Pairwise percentage overlap of gene sets (relative to Y-axis)")
+  
+  ggsave("data/CustomMatches.jpeg", plot = g, width = 14, height = 14, dpi = 300)
 }
